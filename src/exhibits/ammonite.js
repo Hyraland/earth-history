@@ -3,6 +3,7 @@
 // 腹部中央有一道棱脊，两侧各有一条浅沟。
 // 壳面纹理在显卡上烘焙：部分原壳保存（带生长纹，局部有珍珠层的彩虹光泽），
 // 部分外壳剥落露出内模和树枝状缝合线，肋间和脐部残留灰色围岩，还有黄铁矿斑点和细裂纹。
+// 壳口断面是有厚度的壳壁，住室里填满了泥岩。
 
 import * as THREE from 'three';
 import { bakeTexture } from '../bake.js';
@@ -63,17 +64,92 @@ function shellGeometry({ radius, turns, expansion, ribsPerTurn, segPerTurn = 260
   g.setIndex(idx);
   g.computeVertexNormals();
 
-  // 壳口：稍微内凹的深色面，表示空的住室
   const endR = a * Math.exp(b * thetaMax);
-  const capR = k * endR * 1.06;
-  const cap = new THREE.CircleGeometry(capR * 0.97, 48);
-  cap.scale(1, 0.8, 1);
-  cap.translate(0, 0, -capR * 0.12);
-  cap.rotateY(-thetaMax);
-  cap.translate(Math.cos(thetaMax) * endR, 0, Math.sin(thetaMax) * endR);
-
+  const cap = apertureGeometry(pos, cols, segT, endR, k * endR, thetaMax, b);
   return { geometry: g, cap, theta0, thetaMax, bodyStart };
 }
+
+// 壳口断面：外圈是有厚度的壳壁，里面是填满住室的泥岩，表面略微凹陷、起伏不平。
+// 直接用壳管最后一圈顶点作外轮廓，所以肋和棱脊的轮廓能严丝合缝地接上。
+// 几何分两组：0 壳壁断面，1 泥岩
+function apertureGeometry(pos, cols, segT, endR, rho, thetaMax, b) {
+  const center = new THREE.Vector3(Math.cos(thetaMax) * endR, 0, Math.sin(thetaMax) * endR);
+  const out = new THREE.Vector3(                       // 螺线在壳口处的切线，即断面朝外的方向
+    b * Math.cos(thetaMax) - Math.sin(thetaMax), 0, b * Math.sin(thetaMax) + Math.cos(thetaMax)).normalize();
+  const side = new THREE.Vector3().crossVectors(out, new THREE.Vector3(0, 1, 0)).normalize();
+  const ring = [];
+  for (let j = 0; j < cols; j++) {
+    const n = segT * cols + j;
+    ring.push(new THREE.Vector3(pos[n * 3], pos[n * 3 + 1], pos[n * 3 + 2]));
+  }
+
+  // 同心圈：f 是相对外轮廓的缩放，d 是向壳内凹进的深度
+  const WALL = 0.93, RINGS = 14;
+  const levels = [{ f: 1, d: 0 }, { f: WALL, d: 0.015 }];
+  for (let r = 1; r <= RINGS; r++) {
+    const f = WALL * (1 - r / RINGS);
+    levels.push({ f, d: 0.04 + 0.05 * Math.sin((r / RINGS) * Math.PI) });
+  }
+  const verts = [], uvs = [];
+  const tmp = new THREE.Vector3();
+  levels.forEach(({ f, d }, li) => {
+    for (let j = 0; j < cols; j++) {
+      tmp.copy(ring[j]).sub(center).multiplyScalar(f).add(center);
+      // 泥岩表面的小起伏
+      const lump = li > 1 ? (Math.sin(j * 0.9 + li * 1.7) * Math.cos(li * 2.3 - j * 0.4)) * 0.018 : 0;
+      tmp.addScaledVector(out, -(d + lump) * rho);
+      verts.push(tmp.x, tmp.y, tmp.z);
+      const rel = tmp.clone().sub(center);
+      uvs.push(0.5 + rel.dot(side) / (2.4 * rho), 0.5 + rel.y / (2.4 * rho));
+    }
+  });
+  const idxWall = [], idxRock = [];
+  for (let li = 0; li < levels.length - 1; li++) {
+    const target = li === 0 ? idxWall : idxRock;
+    for (let j = 0; j < cols - 1; j++) {
+      const a0 = li * cols + j, a1 = a0 + 1, b0 = a0 + cols, b1 = b0 + 1;
+      target.push(a0, b0, a1, a1, b0, b1);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  // 保证三角形朝外（朝向切线方向），否则翻转
+  const p0 = new THREE.Vector3().fromArray(verts, idxRock[0] * 3);
+  const p1 = new THREE.Vector3().fromArray(verts, idxRock[1] * 3);
+  const p2 = new THREE.Vector3().fromArray(verts, idxRock[2] * 3);
+  const nrm = new THREE.Vector3().crossVectors(p1.clone().sub(p0), p2.clone().sub(p0));
+  const flip = (list) => { for (let i = 0; i < list.length; i += 3) [list[i + 1], list[i + 2]] = [list[i + 2], list[i + 1]]; };
+  if (nrm.dot(out) < 0) { flip(idxWall); flip(idxRock); }
+  g.setIndex([...idxWall, ...idxRock]);
+  g.addGroup(0, idxWall.length, 0);
+  g.addGroup(idxWall.length, idxRock.length, 1);
+  g.computeVertexNormals();
+  // 泥岩面整体朝外，细节交给凹凸贴图；圆心处的三角形退化，不能用自动算出的法线
+  const nAttr = g.attributes.normal;
+  for (let i = cols; i < nAttr.count; i++) nAttr.setXYZ(i, out.x, out.y, out.z);
+  return g;
+}
+
+// ---- 住室里的泥岩：水平层理、细颗粒、零星的壳碎片、干裂纹 ----
+const MATRIX_BAKE = /* glsl */ `
+uniform int uOut;          // 0 颜色  1 凹凸/粗糙度
+void main() {
+  vec2 p = vUv;
+  float lam = fbmP(vec2(p.x * 2.0, p.y * 40.0), vec2(2.0, 40.0));
+  float band = 0.5 + 0.5 * sin(p.y * 6.2831853 * 14.0 + lam * 6.0);
+  float grain = fbmP(p * 64.0, vec2(64.0));
+  vec3 fr = voronoiP(p * 18.0, vec2(18.0));
+  float frag = (1.0 - smoothstep(0.05, 0.12, fr.x)) * step(0.85, fr.z);
+  vec3 cr = voronoiP(p * 9.0 + 0.3, vec2(9.0));
+  float crack = (1.0 - smoothstep(0.0, 0.018, cr.y)) * step(0.35, fbmP(p * 3.0 + 5.0, vec2(3.0)));
+  vec3 c = mix(vec3(0.38, 0.33, 0.27), vec3(0.56, 0.49, 0.40), band * 0.55 + grain * 0.45);
+  c = mix(c, vec3(0.74, 0.66, 0.54), frag);
+  c *= 1.0 - crack * 0.5;
+  float bump = 0.5 + 0.25 * grain + 0.1 * band - 0.35 * crack + 0.12 * frag;
+  if (uOut == 0) gl_FragColor = vec4(c, 1.0);
+  else gl_FragColor = vec4(bump, 0.9, 0.0, 1.0);
+}`;
 
 // ---- 化石壳面纹理（u 沿螺线，v 绕管一圈）----
 const SHELL_BAKE = /* glsl */ `
@@ -170,6 +246,15 @@ function bakeShellTextures(renderer, shape) {
     return t;
   };
   cache = { color: bake(0, true), masks: bake(1, false), nacre: bake(2, false) };
+  const mUniforms = { uOut: { value: 0 } };
+  const bakeMatrix = (out, srgb) => {
+    mUniforms.uOut.value = out;
+    const t = bakeTexture(renderer, { width: 512, height: 512, fragment: MATRIX_BAKE, uniforms: mUniforms, srgb }).texture;
+    t.userData.keep = true;
+    return t;
+  };
+  cache.matrixColor = bakeMatrix(0, true);
+  cache.matrixMasks = bakeMatrix(1, false);
   return cache;
 }
 
@@ -194,8 +279,13 @@ export function buildAmmonite(exhibit, { renderer }) {
   const shell = new THREE.Mesh(shape.geometry, shellMat);
   shell.castShadow = true;
   shell.receiveShadow = true;
-  const capMesh = new THREE.Mesh(shape.cap, new THREE.MeshStandardMaterial({ color: '#3a2e25', roughness: 0.9 }));
+  const wallMat = new THREE.MeshStandardMaterial({ color: '#c9b79a', roughness: 0.6 });   // 壳壁断面：方解石
+  const rockMat = new THREE.MeshStandardMaterial({
+    map: tex.matrixColor, bumpMap: tex.matrixMasks, roughnessMap: tex.matrixMasks, bumpScale: 2, roughness: 1,
+  });
+  const capMesh = new THREE.Mesh(shape.cap, [wallMat, rockMat]);
   capMesh.castShadow = true;
+  capMesh.receiveShadow = true;
 
   // 平放在地上。壳口朝向画面左侧、略微背对镜头，深色的断面几乎侧对视线，不会正对观者
   const fossil = new THREE.Group();
