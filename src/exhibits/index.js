@@ -16,6 +16,7 @@ const BUILDERS = {
   cooksonia: (e, ctx) => import('./impressions.js').then((m) => m.buildCooksonia(e, ctx)),
   archaefructus: (e, ctx) => import('./impressions.js').then((m) => m.buildArchaefructus(e, ctx)),
   tiktaalik: (e, ctx) => import('./impressions.js').then((m) => m.buildTiktaalik(e, ctx)),
+  trackway: (e, ctx) => import('./impressions.js').then((m) => m.buildTrackway(e, ctx)),
   // 立体的程序化化石
   stromatolite: (e, ctx) => import('./stromatolite.js').then((m) => m.buildStromatolite(e, ctx)),
   lepidodendron: (e, ctx) => import('./lepidodendron.js').then((m) => m.buildLepidodendron(e, ctx)),

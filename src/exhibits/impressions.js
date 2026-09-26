@@ -1,4 +1,4 @@
-// 石板上的印痕化石：狄更逊水母、卷曲藻、库克逊蕨、辽宁古果、提塔利克鱼。
+// 石板上的化石：狄更逊水母、卷曲藻、库克逊蕨、辽宁古果、提塔利克鱼，以及蜥脚类足迹。
 // 形态参考真实标本：
 //   狄更逊水母 —— 椭圆形、左右两排节片沿中线错开半节（滑移对称），保存在砂岩层面上的浅浮雕
 //   卷曲藻     —— 约 1 mm 宽的带状体盘成 2～3 圈松散的螺旋，黑色碳质薄膜，保存在赤铁质泥岩里
@@ -379,4 +379,111 @@ export function buildTiktaalik(exhibit, { renderer }) {
     },
   });
   return placeOnGround(slab, { yaw: 0.04, tilt: 0.16 });
+}
+
+// ---------------------------------------------------------------- 蜥脚类足迹
+// 一只蜥脚类走过潮湿的泥滩：后脚印是一个大圆盆（前缘略宽，外侧有爪痕，周围挤出一圈泥缘），
+// 前脚印是马蹄形，落在后脚印的前外侧；左右脚印紧靠中线，是侏罗纪常见的"窄轨"行迹（Parabrontopodus 型）。
+// 一只大型兽脚类的三趾脚印斜着穿过岩面。岩面上有泥滩的波痕。
+const TRACKWAY = /* glsl */ `
+uniform vec4 uPes[PES];      // x, y, 朝向, 左右（-1/1）
+uniform vec4 uManus[PES];
+uniform vec4 uThero[THERO];
+vec2 toLocal(vec2 p, vec4 s) {
+  vec2 q = p - s.xy;
+  float c = cos(s.z), sn = sin(s.z);
+  return vec2(c * q.x + sn * q.y, -sn * q.x + c * q.y);             // x 朝前，y 朝左
+}
+// 返回凹陷深度（0..1），rim 输出挤出的泥缘
+float pesPrint(vec2 q, float side, out float rim) {
+  vec2 r = vec2(29.0, 23.0 + 3.5 * clamp(q.x / 29.0, -1.0, 1.0));
+  float e = length(q / r);
+  float d = 1.0 - smoothstep(0.72, 1.0, e);
+  // 爪痕：前外侧三道短短的凹痕
+  for (int i = 0; i < 3; i++) {
+    float a = 0.35 + 0.35 * float(i);
+    vec2 dir = vec2(cos(a), side * -sin(a));
+    float t;
+    float dist = sdSeg(q, dir * 24.0, dir * 30.0, t);
+    d = max(d, (1.0 - smoothstep(1.2, 2.6, dist)) * 0.5);
+  }
+  rim = smoothstep(0.95, 1.08, e) * (1.0 - smoothstep(1.1, 1.45, e));
+  return d;
+}
+float manusPrint(vec2 q, out float rim) {
+  vec2 c = q / vec2(14.0, 20.0);
+  float rr = length(c);
+  float band = 1.0 - smoothstep(0.28, 0.42, abs(rr - 0.72));         // 马蹄形的一圈
+  float open = smoothstep(-0.45, 0.05, c.x);                          // 后方开口
+  float d = max(band * open, (1.0 - smoothstep(0.55, 0.8, rr)) * 0.45);
+  rim = smoothstep(1.0, 1.15, rr) * (1.0 - smoothstep(1.15, 1.5, rr));
+  return d;
+}
+float theroPrint(vec2 q, out float rim) {
+  float d = 0.0;
+  rim = 0.0;
+  for (int i = 0; i < 3; i++) {
+    float a = (float(i) - 1.0) * 0.42;
+    float len = i == 1 ? 34.0 : 26.0;
+    vec2 dir = vec2(cos(a), sin(a));
+    float t;
+    float dist = sdSeg(q, vec2(0.0), dir * len, t);
+    float w = mix(6.5, 2.0, t);
+    d = max(d, 1.0 - smoothstep(w * 0.75, w, dist));
+    rim = max(rim, (1.0 - smoothstep(w, w + 5.0, dist)) * smoothstep(w * 0.9, w * 1.1, dist));
+  }
+  float heel = 1.0 - smoothstep(0.8, 1.0, length((q + vec2(3.0, 0.0)) / vec2(10.0, 8.0)));
+  return max(d, heel);
+}
+void surface(vec2 p, out vec3 col, out float h) {
+  col = rock(p, vec3(0.55, 0.46, 0.36), vec3(0.69, 0.59, 0.46), h);  // 土黄色的泥质粉砂岩
+  // 泥滩波痕
+  float rip = 0.5 + 0.5 * sin(dot(p, vec2(0.28, 0.12)) + f1(p * 0.01) * 6.0);
+  h += (rip - 0.5) * 0.02;
+  col *= 0.96 + 0.08 * rip;
+
+  float depth = 0.0, rim = 0.0, rr;
+  for (int i = 0; i < PES; i++) {
+    depth = max(depth, pesPrint(toLocal(p, uPes[i]), uPes[i].w, rr) * 0.9);
+    rim = max(rim, rr);
+    depth = max(depth, manusPrint(toLocal(p, uManus[i]), rr) * 0.62);
+    rim = max(rim, rr * 0.7);
+  }
+  for (int i = 0; i < THERO; i++) {
+    depth = max(depth, theroPrint(toLocal(p, uThero[i]), rr) * 0.55);
+    rim = max(rim, rr * 0.6);
+  }
+  h += rim * 0.05 * (1.0 - depth) - depth * 0.26;
+  // 脚印里的泥更潮湿、颜色更深，最深处积了一点水
+  col = mix(col, col * vec3(0.72, 0.72, 0.74), smoothstep(0.1, 0.6, depth));
+  col = mix(col, vec3(0.22, 0.25, 0.27), smoothstep(0.8, 0.95, depth) * 0.6);
+  col *= 1.0 + rim * 0.06;
+}`;
+
+export function buildTrackway(exhibit, { renderer }) {
+  const r = rng(53);
+  // 蜥脚类：沿一条缓缓弯曲的路线向右（行走方向）走
+  const pes = [], manus = [];
+  const route = (x) => -25 + 18 * Math.sin(x / 240);
+  for (let i = 0, x = -300; x <= 300; i++, x += 72) {
+    const y = route(x), ang = Math.atan2(route(x + 1) - y, 1);
+    const side = i % 2 ? 1 : -1;                                        // 1 = 左脚
+    const nx = -Math.sin(ang), ny = Math.cos(ang);
+    const px = x + nx * side * 20, py = y + ny * side * 20;
+    pes.push(new THREE.Vector4(px, py, ang + side * 0.12 + (r() - 0.5) * 0.08, side));
+    manus.push(new THREE.Vector4(px + Math.cos(ang) * 36 + nx * side * 12, py + Math.sin(ang) * 36 + ny * side * 12, ang + side * 0.3, side));
+  }
+  // 兽脚类：斜穿过岩面
+  const thero = [];
+  const a0 = -0.62, dx = Math.cos(a0), dy = Math.sin(a0);
+  for (let i = 0; i < 8; i++) {
+    const t = -260 + i * 72, side = i % 2 ? 1 : -1;
+    thero.push(new THREE.Vector4(-40 + dx * t - dy * side * 9, 20 + dy * t + dx * side * 9, a0 + side * 0.08, side));
+  }
+  const slab = buildSlab(renderer, {
+    width: 720, depth: 380, relief: 40, thickness: 14, seed: 37, side: '#6e5f4c',
+    surface: TRACKWAY, defines: `#define PES ${pes.length}\n#define THERO ${thero.length}`,
+    uniforms: { uPes: { value: pes }, uManus: { value: manus }, uThero: { value: thero } },
+  });
+  return placeOnGround(slab, { yaw: 0.02, tilt: 0.1, sink: 0.45 });   // 大半埋进地里，像地表露出的一层岩面
 }
