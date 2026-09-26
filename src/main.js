@@ -12,6 +12,7 @@ import { bakeGroundTextures, buildEraLut } from './groundTextures.js';
 import { createWalker } from './walker.js';
 import { ExhibitManager } from './exhibits/index.js';
 import { createHud } from './hud.js';
+import { setupCredits } from './credits.js';
 
 // ---- 镜头与行走参数 ----
 const CAMERA = { y: 380, z: 0, pitch: -0.36, fov: 40 };
@@ -137,6 +138,7 @@ window.addEventListener('wheel', (e) => {
 }, { passive: true });
 
 const hud = createHud({ onJump: jump });
+setupCredits();
 
 // ---- 天空颜色随年代变化，大灭绝前后蒙上一层灰 ----
 const skyKeys = SKY_KEYS.map((k) => ({ ...k, h: new THREE.Color(k.horizon), z: new THREE.Color(k.zenith) }));

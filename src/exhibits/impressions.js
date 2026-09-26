@@ -1,4 +1,4 @@
-// 石板上的印痕化石：狄更逊水母、卷曲藻、库克逊蕨、辽宁古果。
+// 石板上的印痕化石：狄更逊水母、卷曲藻、库克逊蕨、辽宁古果、提塔利克鱼。
 // 形态参考真实标本：
 //   狄更逊水母 —— 椭圆形、左右两排节片沿中线错开半节（滑移对称），保存在砂岩层面上的浅浮雕
 //   卷曲藻     —— 约 1 mm 宽的带状体盘成 2～3 圈松散的螺旋，黑色碳质薄膜，保存在赤铁质泥岩里
@@ -255,4 +255,128 @@ export function buildArchaefructus(exhibit, { renderer }) {
     width: 440, depth: 330, relief: 26, seed: 11, side: '#a89a7c', surface: ARCHAEFRUCTUS, defines, uniforms,
   });
   return placeOnGround(slab, { yaw: -0.05, tilt: 0.14 });
+}
+
+// ---------------------------------------------------------------- 提塔利克鱼
+// 参照 NUFV 108 等标本：扁平的三角形头部，眼眶长在头顶；头骨由一块块骨板拼成；
+// 肩带后面是肉质的胸鳍，里面有肱骨、桡骨、尺骨，末端是鳍条；身体覆盖菱形鳞片，尾部有鳍条。
+const TIKTAALIK = /* glsl */ `
+uniform vec2 uSpine[SPINE];
+// 沿脊柱的坐标：t 从吻端 0 到尾端 1，s 是到脊柱的有符号距离
+void spineCoord(vec2 p, out float t, out float s) {
+  float best = 1e9;
+  t = 0.0; s = 0.0;
+  for (int i = 0; i < SPINE - 1; i++) {
+    vec2 a = uSpine[i], b = uSpine[i + 1], ba = b - a;
+    float h = clamp(dot(p - a, ba) / dot(ba, ba), 0.0, 1.0);
+    vec2 d = p - (a + ba * h);
+    float dist = length(d);
+    if (dist < best) {
+      best = dist;
+      t = (float(i) + h) / float(SPINE - 1);
+      s = sign(ba.x * d.y - ba.y * d.x) * dist;
+    }
+  }
+}
+float halfWidth(float t) {
+  float head = 6.0 + 40.0 * pow(clamp(t / 0.17, 0.0, 1.0), 0.6);           // 三角形的扁头
+  float trunk = mix(46.0, 30.0, smoothstep(0.17, 0.62, t));
+  float tail = mix(30.0, 4.0, smoothstep(0.62, 1.0, t));
+  return t < 0.17 ? head : (t < 0.62 ? trunk : tail);
+}
+// 肉鳍：沿鳍轴有一串骨头，末端散开成鳍条
+void lobeFin(vec2 p, vec2 base, float ang, float len, float wid, inout float m, inout float bone, inout float rays) {
+  vec2 q = p - base;
+  float cs = cos(ang), sn = sin(ang);
+  q = vec2(cs * q.x + sn * q.y, -sn * q.x + cs * q.y);               // x 沿鳍轴
+  float fx = q.x / len;
+  float e = length(vec2((q.x - len * 0.5) / (len * 0.5), q.y / wid));
+  float inFin = (1.0 - smoothstep(0.9, 1.05, e)) * step(0.0, q.x);
+  m = max(m, inFin);
+  float axis = (1.0 - smoothstep(wid * 0.18, wid * 0.3, abs(q.y))) * step(fx, 0.62);
+  float joints = smoothstep(0.02, 0.05, abs(fract(fx * 3.4) - 0.5) );   // 骨头之间的关节
+  bone = max(bone, inFin * axis * joints);
+  float fan = q.y / (q.x + len * 0.15);
+  rays = max(rays, inFin * smoothstep(0.5, 0.75, fx) * (1.0 - smoothstep(0.1, 0.3, abs(fract(fan * 9.0) - 0.5))));
+}
+void surface(vec2 p, out vec3 col, out float h) {
+  col = rock(p, vec3(0.50, 0.30, 0.22), vec3(0.62, 0.41, 0.31), h);      // 弗拉姆组的红褐色粉砂岩
+  float t, s;
+  spineCoord(p, t, s);
+  float w = halfWidth(t);
+  float body = (1.0 - smoothstep(w - 2.0, w + 1.0, abs(s))) * step(t, 0.999);
+  float dome = sqrt(max(0.0, 1.0 - (s / max(w, 1.0)) * (s / max(w, 1.0))));
+  float u = t * uLen;
+
+  // 尾鳍：尾部上下两侧的鳍条
+  float finW = w + 16.0 * smoothstep(0.72, 0.88, t) * (1.0 - smoothstep(0.97, 1.0, t));
+  float tailFin = (1.0 - smoothstep(finW - 2.0, finW, abs(s))) * (1.0 - body) * step(0.72, t);
+  float tailRays = tailFin * (1.0 - smoothstep(0.15, 0.35, abs(fract(u * 0.35) - 0.5)));
+
+  // 头骨：骨板缝线、头顶的眼眶、鼻孔
+  float head = body * (1.0 - smoothstep(0.17, 0.2, t));
+  vec3 plates = voronoiP(vec2(u, s) / 11.0 + 3.0, vec2(4096.0));
+  float suture = head * (1.0 - smoothstep(0.0, 0.07, plates.y));
+  vec2 eye = vec2(u - uLen * 0.1, abs(s) - w * 0.4);
+  float orbit = head * (1.0 - smoothstep(0.85, 1.05, length(eye / vec2(7.5, 5.5))));
+  float nostril = head * (1.0 - smoothstep(0.7, 1.0, length(vec2(u - uLen * 0.028, abs(s) - w * 0.45) / 2.2)));
+
+  // 鳞片：身体上斜向交错的菱形
+  float k1 = fract(u / 7.0 + s / 11.0), k2 = fract(u / 7.0 - s / 11.0);
+  float scaleEdge = body * step(0.19, t) * (1.0 - smoothstep(0.0, 0.07, min(min(k1, 1.0 - k1), min(k2, 1.0 - k2))));
+
+  // 胸鳍和腹鳍（左右各一）
+  float fin = 0.0, finBone = 0.0, finRays = 0.0;
+  lobeFin(p, uPect[0], uPectAng[0], 62.0, 15.0, fin, finBone, finRays);
+  lobeFin(p, uPect[1], uPectAng[1], 62.0, 15.0, fin, finBone, finRays);
+  lobeFin(p, uPelv[0], uPelvAng[0], 34.0, 9.0, fin, finBone, finRays);
+  lobeFin(p, uPelv[1], uPelvAng[1], 34.0, 9.0, fin, finBone, finRays);
+  fin *= 1.0 - body;
+
+  vec3 boneCol = vec3(0.17, 0.14, 0.12) * (0.85 + 0.3 * n1(p * 0.9));
+  vec3 c = col;
+  c = mix(c, boneCol, max(body, fin * 0.9) * 0.92);
+  c = mix(c, boneCol * 0.9, (tailFin) * 0.75);
+  c = mix(c, boneCol * 1.35, finBone * 0.8);
+  c *= 1.0 - (suture * 0.45 + scaleEdge * 0.35 + finRays * 0.3 + tailRays * 0.3);
+  c = mix(c, vec3(0.10, 0.08, 0.07), orbit * 0.85 + nostril * 0.8);
+  col = c;
+  h += body * (0.10 * dome + 0.03) + fin * 0.05 + finBone * 0.03 + tailFin * 0.03
+     - suture * 0.02 - orbit * 0.08 - nostril * 0.04 - scaleEdge * 0.015 - finRays * 0.01;
+}`;
+
+export function buildTiktaalik(exhibit, { renderer }) {
+  // 脊柱：头朝右（行走方向），身体微微弯成 S 形
+  const N = 18, L = 380;
+  const pts = [];
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
+    pts.push(new THREE.Vector2(175 - L * t, 30 * Math.sin(t * Math.PI * 1.4 + 0.4) - 12));
+  }
+  const at = (t) => {
+    const f = t * (N - 1), i = Math.min(N - 2, Math.floor(f)), k = f - i;
+    return pts[i].clone().lerp(pts[i + 1], k);
+  };
+  const dirAt = (t) => at(Math.min(1, t + 0.01)).sub(at(Math.max(0, t - 0.01))).normalize();
+  // 鳍的根部在身体两侧，鳍轴向后外方张开
+  const finPair = (t, w, spread) => {
+    const c = at(t), d = dirAt(t), n = new THREE.Vector2(-d.y, d.x);
+    const back = Math.atan2(d.y, d.x);                              // 朝尾部的方向
+    return {
+      base: [c.clone().addScaledVector(n, -w), c.clone().addScaledVector(n, w)],
+      ang: [back - spread, back + spread],
+    };
+  };
+  const pect = finPair(0.22, 42, 0.75);
+  const pelv = finPair(0.58, 30, 0.6);
+  const slab = buildSlab(renderer, {
+    width: 460, depth: 340, relief: 40, seed: 19, side: '#6d5244',
+    surface: TIKTAALIK, defines: `#define SPINE ${N}\nuniform float uLen;\nuniform vec2 uPect[2];\nuniform float uPectAng[2];\nuniform vec2 uPelv[2];\nuniform float uPelvAng[2];`,
+    uniforms: {
+      uSpine: { value: pts }, uLen: { value: L },
+      uPect: { value: pect.base }, uPectAng: { value: pect.ang },
+      uPelv: { value: pelv.base }, uPelvAng: { value: pelv.ang },
+    },
+  });
+  return placeOnGround(slab, { yaw: 0.04, tilt: 0.16 });
 }

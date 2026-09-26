@@ -1,7 +1,9 @@
 # 模型来源
 
+## 史密森尼学会（CC0）
+
 以下扫描模型来自史密森尼学会 3D 数字化项目（Smithsonian 3D Digitization），均为 **CC0**（公有领域）。
-史密森尼建议注明来源，下面按其建议列出。下载的是官方提供的 "Low resolution" Draco 压缩 glb。
+史密森尼建议注明来源，下面按其建议列出。下载的是官方提供的 "Low resolution" Draco 压缩 glb，未做修改。
 
 | 文件 | 标本 | 馆藏号 | 页面 |
 |---|---|---|---|
@@ -11,3 +13,26 @@
 | `triceratops.glb` | *Triceratops horridus* Marsh, 1889，晚白垩世马斯特里赫特期，怀俄明州，完整骨架（J. B. Hatcher 1890 年采集） | USNM PAL500000 | https://3d.si.edu/object/3d/triceratops-horridus-marsh-1889:d8c623be-4ebc-11ea-b77f-2e728ce88125 |
 
 Courtesy of the Smithsonian Institution, National Museum of Natural History, Department of Paleobiology.
+
+## Sketchfab（CC BY 4.0）
+
+以下模型按 CC BY 4.0 使用，须署名。它们都经过 `tools/process_scan.py` 修改：合并网格并焊接顶点、删除扫描碎片、
+减面、缩小贴图、Draco 压缩；邓氏鱼另外切除了展台背板、支架杆和后方的扫描残片。页面上的展牌和"来源与致谢"面板都有署名。
+
+| 文件 | 标本 | 原始模型 | 作者 |
+|---|---|---|---|
+| `dunkleosteus.glb` | 邓氏鱼头骨（展出标本的扫描，作者未注明是否为复制品） | [Dunkleosteus](https://sketchfab.com/3d-models/dunkleosteus-58f39882a0ee4921baeb2c3057f46041) | MattMakesSwords - Scans |
+| `ichthyosaur.glb` | *Stenopterygius quadriscissus*，德国霍尔茨马登/奥姆登，早侏罗世，卡特县博物馆展品 | [CCM Ichthyosaur](https://sketchfab.com/3d-models/ccm-ichthyosaur-85fe3715565545669f184761d9dbdbf8) | Carter County Museum |
+| `cetotherium.glb` | *Cetotherium riabinini*，NMNH-P 668/1，乌克兰国家自然历史博物馆，组装骨架 | [Cetotherium riabinini assembled skeleton](https://sketchfab.com/3d-models/cetotherium-riabinini-assembled-skeleton-8532da04db044d9c8417fcec43053e3a) | SchmalhausenEvolMorph |
+| `lucy.glb` | 露西 AL 288-1（据标本照片建模，不是扫描） | ["Lucy" Australopithecus afarensis; AL 288-1](https://sketchfab.com/3d-models/lucy-australopithecus-afarensis-al-288-1-9f6c06b0a4e54890a87486e414b8cb0d) | JackalopeODDsENDs |
+
+许可证：https://creativecommons.org/licenses/by/4.0/
+
+处理命令（原始下载放在不进 git 的 `assets/incoming/`）：
+
+```bash
+blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/dunkleosteus.glb --faces 200000 --min-part 0.002 --tex 4096 --cut "(x < -0.55 and y < 1.35) or (x < -0.55 and abs(z) > 0.45) or (x < -0.2 and y < 0.78) or (x < 0.0 and y < 0.6)"
+blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/ichthyosaur.glb --faces 160000 --tex 4096 --min-part 0.0003
+blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/cetotherium.glb --faces 220000 --tex 4096 --min-part 0.0003
+blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/lucy.glb --faces 260000 --tex 2048 --min-part 0.0003
+```

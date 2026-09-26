@@ -15,6 +15,7 @@ const BUILDERS = {
   grypania: (e, ctx) => import('./impressions.js').then((m) => m.buildGrypania(e, ctx)),
   cooksonia: (e, ctx) => import('./impressions.js').then((m) => m.buildCooksonia(e, ctx)),
   archaefructus: (e, ctx) => import('./impressions.js').then((m) => m.buildArchaefructus(e, ctx)),
+  tiktaalik: (e, ctx) => import('./impressions.js').then((m) => m.buildTiktaalik(e, ctx)),
   // 立体的程序化化石
   stromatolite: (e, ctx) => import('./stromatolite.js').then((m) => m.buildStromatolite(e, ctx)),
   lepidodendron: (e, ctx) => import('./lepidodendron.js').then((m) => m.buildLepidodendron(e, ctx)),
@@ -78,7 +79,7 @@ export class ExhibitManager {
     this.scene.add(group);
     slot.group = group;
     slot.labelAnchor = built.labelAnchor;
-    slot.label = this.makeLabel(e, built.placeholder);
+    slot.label = this.makeLabel(e, built);
     slot.state = 'ready';
   }
 
@@ -93,7 +94,7 @@ export class ExhibitManager {
     slot.state = 'idle';
   }
 
-  makeLabel(e, placeholder) {
+  makeLabel(e, { placeholder, credit }) {
     const el = document.createElement('div');
     el.className = 'placard';
     el.innerHTML = `
@@ -103,6 +104,8 @@ export class ExhibitManager {
         <div class="placard-latin">${e.latin}</div>
         <div class="placard-meta">${formatAge(e.age)} · ${e.milestone}</div>
         <div class="placard-desc">${e.desc}</div>
+        ${credit ? `<div class="placard-credit">模型：<a href="${credit.url}" target="_blank" rel="noopener">${credit.by}</a>
+          · <a href="${credit.licenseUrl}" target="_blank" rel="noopener">${credit.license}</a>${credit.modified ? ' · 已修改' : ''}</div>` : ''}
       </div>
       <div class="placard-stem"></div>`;
     this.labelLayer.appendChild(el);

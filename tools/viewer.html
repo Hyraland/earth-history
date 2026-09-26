@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>模型检查</title>
+  <style>html, body { margin: 0; height: 100%; background: #8a8f94; overflow: hidden; } #info { position: fixed; left: 12px; top: 10px; font: 13px -apple-system, sans-serif; color: #fff; }</style>
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body>
+  <div id="info"></div>
+  <script type="module">
+    // 用法：tools/viewer.html?m=../assets/models/xxx.glb —— 拖动旋转、滚轮缩放
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const url = new URLSearchParams(location.search).get('m');
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+    const scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight('#ffffff', '#555555', 1.6));
+    const sun = new THREE.DirectionalLight('#ffffff', 2.2);
+    sun.position.set(1, 2, 1.5);
+    scene.add(sun);
+    const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.01, 1e7);
+    const controls = new OrbitControls(camera, renderer.domElement);
+
+    const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/gltf/'));
+    const gltf = await loader.loadAsync(url);
+    const model = gltf.scene;
+    scene.add(model);
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+    const r = size.length() * 0.6;
+    camera.position.copy(center).add(new THREE.Vector3(r * 0.6, r * 0.5, r));
+    controls.target.copy(center);
+    let tris = 0;
+    model.traverse((o) => { if (o.isMesh) tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; });
+    document.getElementById('info').textContent = `${url} · ${Math.round(tris).toLocaleString()} 面 · 尺寸 ${size.toArray().map((v) => v.toFixed(2)).join(' × ')}`;
+    window.__view = { scene, camera, controls, model, renderer, center, r, box };
+    renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+  </script>
+</body>
+</html>
