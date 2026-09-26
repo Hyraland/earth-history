@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { placeOnGround } from './place.js';
 
 const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/gltf/');
 const loader = new GLTFLoader().setDRACOLoader(draco);
@@ -37,7 +38,7 @@ export async function buildScan(exhibit, { renderer }) {
     for (const t of [m.map, m.normalMap]) if (t) t.anisotropy = aniso;
   });
 
-  // 摆正 → 缩放 → 朝向 → 翘起，最后让最低点落地
+  // 摆正 → 缩放，再交给 placeOnGround 转朝向、翘起、落地
   const oriented = new THREE.Group();
   if (cfg.orient) model.rotation.set(...cfg.orient);
   oriented.add(model);
@@ -47,16 +48,5 @@ export async function buildScan(exhibit, { renderer }) {
   const center0 = box0.getCenter(new THREE.Vector3());
   model.position.sub(center0);                          // 以包围盒中心为原点
   oriented.scale.setScalar(cfg.size / Math.max(size0.x, size0.y, size0.z));
-
-  const placed = new THREE.Group();
-  placed.add(oriented);
-  placed.rotation.set(cfg.tilt ?? 0, cfg.yaw ?? 0, 0);   // 先转朝向，再整体朝镜头（+z）翘起
-  placed.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(placed, true);
-  placed.position.y = -box.min.y - 2 - (box.max.y - box.min.y) * (cfg.sink ?? 0);
-
-  const group = new THREE.Group();
-  group.add(placed);
-  const height = (box.max.y - box.min.y) * (1 - (cfg.sink ?? 0));
-  return { object: group, labelAnchor: new THREE.Vector3(box.max.x * 0.85, Math.max(height * 0.9, 40), 0) };
+  return placeOnGround(oriented, cfg);
 }

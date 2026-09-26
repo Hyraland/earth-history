@@ -10,6 +10,11 @@ import { formatAge } from '../timeline.js';
 // 构建函数签名：(exhibit, { renderer }) => { object, labelAnchor }
 const BUILDERS = {
   ammonite: (e, ctx) => import('./ammonite.js').then((m) => m.buildAmmonite(e, ctx)),
+  // 石板上的印痕化石
+  dickinsonia: (e, ctx) => import('./impressions.js').then((m) => m.buildDickinsonia(e, ctx)),
+  grypania: (e, ctx) => import('./impressions.js').then((m) => m.buildGrypania(e, ctx)),
+  cooksonia: (e, ctx) => import('./impressions.js').then((m) => m.buildCooksonia(e, ctx)),
+  archaefructus: (e, ctx) => import('./impressions.js').then((m) => m.buildArchaefructus(e, ctx)),
 };
 // 史密森尼扫描模型
 for (const id of Object.keys(SCANS)) BUILDERS[id] = (e, ctx) => import('./scan.js').then((m) => m.buildScan(e, ctx));

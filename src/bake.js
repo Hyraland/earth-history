@@ -88,5 +88,5 @@ export function bakeTexture(renderer, { width, height, fragment, uniforms = {}, 
   renderer.setRenderTarget(prev);
   renderer.toneMapping = prevTone;
   material.dispose();
-  return { texture: tex, dispose: () => rt.dispose() };
+  return { texture: tex, rt, dispose: () => rt.dispose() };
 }
