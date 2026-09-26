@@ -15,6 +15,9 @@ const BUILDERS = {
   grypania: (e, ctx) => import('./impressions.js').then((m) => m.buildGrypania(e, ctx)),
   cooksonia: (e, ctx) => import('./impressions.js').then((m) => m.buildCooksonia(e, ctx)),
   archaefructus: (e, ctx) => import('./impressions.js').then((m) => m.buildArchaefructus(e, ctx)),
+  // 立体的程序化化石
+  stromatolite: (e, ctx) => import('./stromatolite.js').then((m) => m.buildStromatolite(e, ctx)),
+  lepidodendron: (e, ctx) => import('./lepidodendron.js').then((m) => m.buildLepidodendron(e, ctx)),
 };
 // 史密森尼扫描模型
 for (const id of Object.keys(SCANS)) BUILDERS[id] = (e, ctx) => import('./scan.js').then((m) => m.buildScan(e, ctx));
@@ -30,7 +33,12 @@ function disposeTree(obj) {
     if (o.geometry) o.geometry.dispose();
     if (o.material) {
       [].concat(o.material).forEach((m) => {
-        TEXTURE_SLOTS.forEach((k) => { if (m[k] && !m[k].userData.keep) m[k].dispose(); });
+        TEXTURE_SLOTS.forEach((k) => {
+          const t = m[k];
+          if (!t || t.userData.keep) return;
+          if (t.userData.renderTarget) t.userData.renderTarget.dispose();
+          else t.dispose();
+        });
         m.dispose();
       });
     }

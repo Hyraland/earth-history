@@ -65,6 +65,7 @@ export function bakeTexture(renderer, { width, height, fragment, uniforms = {}, 
     depthBuffer: false,
   });
   const tex = rt.texture;
+  tex.userData.renderTarget = rt;     // 释放时要释放整个渲染目标，只 dispose 贴图不会回收显存
   tex.wrapS = wrap;
   tex.wrapT = THREE.RepeatWrapping;
   tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
