@@ -3,15 +3,16 @@
 
 import * as THREE from 'three';
 import { buildPlaceholder } from './placeholder.js';
+import { SCANS } from './scan.js';
 import { CURVE_R, curveDrop } from '../terrain.js';
 import { formatAge } from '../timeline.js';
 
 // 构建函数签名：(exhibit, { renderer }) => { object, labelAnchor }
 const BUILDERS = {
   ammonite: (e, ctx) => import('./ammonite.js').then((m) => m.buildAmmonite(e, ctx)),
-  // 以后加入的化石，例如：
-  // trilobite: () => loadGLB('assets/trilobite.glb'),
 };
+// 史密森尼扫描模型
+for (const id of Object.keys(SCANS)) BUILDERS[id] = (e, ctx) => import('./scan.js').then((m) => m.buildScan(e, ctx));
 
 const LOAD_RANGE = 1700;    // 距镜头多远开始构建
 const UNLOAD_RANGE = 2000;  // 距镜头多远释放（比加载范围大一点，避免来回抖动）
