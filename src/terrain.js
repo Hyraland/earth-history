@@ -1,13 +1,14 @@
-// 地面：一片随地球曲率弯曲的平原。几何上只有很缓的起伏，外加远处地平线上的一道断层崖。
+// 地面：一片随地球曲率弯曲的平原。几何上只有很缓的起伏，远处地平线上是一道山脉——
+// 山的高度、尖锐程度、火山和积雪随地质年代变化（见 timeline.js 的 MOUNTAIN_KEYS），按路程查表。
 // 地貌细节来自启动时烘焙好的贴图（见 groundTextures.js）：每个像素只采样几次贴图，
 // 再按年代查找表（岩土、植被、水、冰、沙丘、熔岩……）组合出当时的地表。
-// 高度函数在 GLSL 与 JS 中各写一份（rawHeight），JS 版用于摆放展品和小人。
+// 高度函数在 GLSL 与 JS 中各写一份（rawHeight），JS 版用于摆放展品和小人（只需要平原部分，山在远处）。
 
 import * as THREE from 'three';
 
 export const CURVE_R = 16000;     // 弯曲半径：越小地平线越弯
-export const SCARP_Z = -2900;     // 远处断层崖的位置
-export const SCARP_H = 150;       // 断层崖高度
+export const RANGE_Z = -2950;     // 远处山脉山脚的大致位置
+const MTN_SCALE = 0.42;           // MOUNTAIN_KEYS 里的高度是相对值，乘上它才是世界单位（山在地平线附近，太高会挡住天空）
 const GRID_STEP = 10;             // x 方向网格间距；滚动按它对齐，避免地形"游动"
 const HALF_W = 3200;
 const NEAR_Z = -300;
@@ -46,25 +47,77 @@ const HEIGHT_GLSL = /* glsl */ `
 uniform float uSnap;
 uniform float uFrac;
 uniform float uR;
+uniform sampler2D uMtn;     // 山脉参数查找表（按路程）：r 高度/1000  g 尖锐度  b 火山  a 积雪
+uniform float uWalkLen;
 
-// 与 JS 的 rawHeight 保持一致
-float th_height(vec2 w) {
-  float H = (th_fbm(w / 500.0) - 0.5) * 10.0 + (th_noise(w / 90.0) - 0.5) * 2.0;   // 平原的缓起伏
-  float line = ${SCARP_Z.toFixed(1)} + (th_fbm(vec2(w.x / 500.0, 5.0)) - 0.5) * 700.0;
-  float up = smoothstep(line + 20.0, line - 20.0, w.y);                           // 断层崖
-  float top = ${SCARP_H.toFixed(1)} + (th_noise(vec2(w.x / 220.0, 9.0)) - 0.5) * 80.0;
-  return H + up * top;
+// 山脊噪声：把噪声折成尖脊（1 - |2n - 1|），层层叠加，高处的脊更尖
+float th_ridged(vec2 p) {
+  float s = 0.0, a = 0.55, w = 1.0;
+  for (int i = 0; i < 5; i++) {
+    float n = 1.0 - abs(th_noise(p) * 2.0 - 1.0);
+    n *= n;
+    s += a * n * w;
+    w = clamp(n * 1.6, 0.0, 1.0);
+    p = p * 2.07 + vec2(11.3, 5.7);
+    a *= 0.5;
+  }
+  return s;
 }
+
+vec4 th_mtnParams(float x) { return texture2D(uMtn, vec2(clamp(x / uWalkLen, 0.0, 1.0), 0.5)); }
+
+// 山体高度（不含平原）；mask 输出"这里属于山"的程度
+float th_mountain(vec2 w, vec4 m, out float mask) {
+  mask = 0.0;
+  if (w.y > ${(RANGE_Z + 450).toFixed(1)}) return 0.0;        // 近处的平原不用算山（山脚线最多前后摆动 300）
+  float front = ${RANGE_Z.toFixed(1)} + (th_fbm(vec2(w.x / 700.0, 5.0)) - 0.5) * 600.0;   // 山脚线
+  float d = front - w.y;                                   // 深入山区的距离
+  mask = smoothstep(-80.0, 250.0, d);
+  if (d < -150.0) return 0.0;
+  float rise = smoothstep(-150.0, 900.0, d);               // 从山麓丘陵到主脊
+  vec2 p = w / vec2(1100.0, 800.0);
+  float ridged = th_ridged(p);
+  float rounded = th_fbm(p * 0.7 + 3.0);
+  float shape = mix(rounded * 1.1, ridged, m.g);
+  float h = m.r * 1000.0 * rise * (0.25 + 1.05 * shape);
+  // 火山锥：沿山前稀疏分布，顶上有火山口
+  float cell = floor(w.x / 1500.0);
+  float cx = (cell + 0.25 + 0.5 * th_hash(vec2(cell, 3.0))) * 1500.0;
+  float cz = front - 300.0 - 500.0 * th_hash(vec2(cell, 7.0));
+  float r = length(vec2(w.x - cx, (w.y - cz) * 1.2));
+  float big = step(th_hash(vec2(cell, 11.0)), m.b);         // 火山越多的年代，越多格子里有火山
+  float cone = max(0.0, 1.0 - r / 420.0);
+  float crater = smoothstep(40.0, 0.0, r) * 0.25;
+  h = max(h, big * 290.0 * (pow(cone, 1.4) - crater));      // 火山的高度不随山脉高低变：太古宙的山很矮，火山却很醒目
+  return h;
+}
+
+// 与 JS 的 rawHeight 在平原部分保持一致
+float th_height(vec2 w, out float mtnMask) {
+  float H = (th_fbm(w / 500.0) - 0.5) * 10.0 + (th_noise(w / 90.0) - 0.5) * 2.0;   // 平原的缓起伏
+  return H + th_mountain(w, th_mtnParams(w.x), mtnMask);
+}
+float th_height(vec2 w) { float m; return th_height(w, m); }
 
 #ifdef TERRAIN_COLOR
 varying vec2 vW;
 varying float vH;
 varying vec3 vNw;
+varying float vMtn;
+varying vec4 vMP;
 #endif
+
+// 只求位置（阴影深度那一遍不需要法线，省掉 4 次高度计算）
+vec3 terrainPosition(vec3 pos) {
+  vec2 w = vec2(pos.x + uSnap, pos.z);
+  float lx = pos.x - uFrac;
+  return vec3(lx, th_height(w) - (lx * lx + pos.z * pos.z) / (2.0 * uR), pos.z);
+}
 
 void terrainDisplace(vec3 pos, out vec3 outPos, out vec3 outNrm) {
   vec2 w = vec2(pos.x + uSnap, pos.z);
-  float h = th_height(w);
+  float mtn;
+  float h = th_height(w, mtn);
   float e = 2.0 + 0.008 * abs(pos.z);
   float hx = th_height(w + vec2(e, 0.0)) - th_height(w - vec2(e, 0.0));
   float hz = th_height(w + vec2(0.0, e)) - th_height(w - vec2(0.0, e));
@@ -73,7 +126,7 @@ void terrainDisplace(vec3 pos, out vec3 outPos, out vec3 outNrm) {
   float bend = (lx * lx + pos.z * pos.z) / (2.0 * uR);
   outPos = vec3(lx, h - bend, pos.z);
 #ifdef TERRAIN_COLOR
-  vW = w; vH = h; vNw = outNrm;
+  vW = w; vH = h; vNw = outNrm; vMtn = mtn; vMP = th_mtnParams(w.x);
 #endif
 }
 `;
@@ -93,6 +146,8 @@ uniform float uRainR;
 varying vec2 vW;
 varying float vH;
 varying vec3 vNw;
+varying float vMtn;
+varying vec4 vMP;
 
 struct Era { vec3 a; vec3 b; vec3 v; vec3 wc; vec4 p1; vec4 p2; };
 
@@ -223,16 +278,25 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
   rough = mix(rough, 0.95, scorch * 0.8);
 }
 
-// 断层崖面：越往下越古老的岩层，大灭绝在岩层中留下黑色的界线
-vec3 scarpFace(vec2 w, float y) {
-  float layer = y / 10.0 + (texture2D(uDet, vec2(w.x / 900.0, y / 60.0)).r - 0.5) * 1.2;
-  float sx = w.x - (${SCARP_H.toFixed(1)} + 40.0 - y) * 60.0;
-  Era le = eraAt(sx);
-  vec3 c = mix(le.a, le.b, fract(floor(layer) * 0.618 + 0.2)) * (0.8 + 0.3 * smoothstep(0.0, 0.2, fract(layer)));
-  c *= 0.85 + 0.3 * texture2D(uDet, vec2(w.x / 60.0, y / 12.0)).r;
-  for (int i = 0; i < RIFT_COUNT; i++) {
-    c = mix(c, vec3(0.05, 0.045, 0.04), 1.0 - smoothstep(20.0, 90.0, abs(sx - uRifts[i])));
-  }
+// 山体：岩石上横着一层层的地层，缓坡上长着当时的植被，雪线以上积雪；火山多的年代岩石更黑
+vec3 mountainSurface(vec2 w, float y, vec3 nrm, Era e, vec4 m, out float rough) {
+  float slope = 1.0 - nrm.y;                                           // 0 平，越大越陡
+  float n1 = texture2D(uDet, w / 700.0 + 0.3).r, n2 = texture2D(uDet, w / 90.0).r;
+  float layer = y / 16.0 + (texture2D(uDet, vec2(w.x / 1200.0, y / 90.0)).r - 0.5) * 1.6;
+  float strata = smoothstep(0.15, 0.45, slope);                          // 地层只在陡坡上露出来
+  vec3 rock = mix(mix(e.a, e.b, 0.5), mix(e.a, e.b, fract(floor(layer) * 0.618 + 0.2)), strata);
+  rock *= 1.0 - 0.28 * strata * (1.0 - smoothstep(0.0, 0.25, fract(layer)));
+  rock = mix(rock, rock * vec3(0.55, 0.53, 0.52), m.b * 0.6);         // 火山岩
+  rock *= 0.8 + 0.35 * n2;
+  vec3 c = rock;
+  // 植被：缓坡、树线以下
+  float veg = e.p1.x * smoothstep(0.35, 0.15, slope) * smoothstep(200.0, 70.0, y + (n1 - 0.5) * 60.0);
+  c = mix(c, e.v * (0.7 + 0.4 * n2), veg * 0.85);
+  // 积雪：雪线随年代变化，陡坡挂不住雪
+  float snowLine = mix(1200.0, 50.0, m.a) + (n1 - 0.5) * 60.0;
+  float snow = smoothstep(snowLine, snowLine + 40.0, y) * smoothstep(0.75, 0.45, slope) * step(0.01, m.a);
+  c = mix(c, vec3(0.9, 0.93, 0.98) * (0.92 + 0.1 * n2), snow);
+  rough = mix(0.92, 0.6, snow);
   return c;
 }
 `;
@@ -251,12 +315,13 @@ const FRAGMENT_MAIN = /* glsl */ `
   grad = clamp(grad, -2.5, 2.5) * vNw.y;
   vec3 tNrmW = normalize(vNw + vec3(-grad.x, 0.0, -grad.y));
 
-  // 崖面
-  float face = smoothstep(0.8, 0.5, vNw.y) * smoothstep(4.0, 12.0, vH);
-  if (face > 0.0) {
-    tCol = mix(tCol, scarpFace(vW, vH), face);
-    tRough = mix(tRough, 0.95, face);
-    tEmi *= 1.0 - face;
+  // 山脉
+  if (vMtn > 0.001) {
+    float mRough;
+    vec3 mCol = mountainSurface(vW, vH, vNw, era, vMP, mRough);
+    tCol = mix(tCol, mCol, vMtn);
+    tRough = mix(tRough, mRough, vMtn);
+    tEmi *= 1.0 - vMtn;
   }
   diffuseColor.rgb = tCol;
 `;
@@ -293,10 +358,7 @@ const smoothstep = (e0, e1, x) => {
 
 export function rawHeight(wx, wz) {
   const H = (fbm(wx / 500, wz / 500) - 0.5) * 10 + (noise(wx / 90, wz / 90) - 0.5) * 2;
-  const line = SCARP_Z + (fbm(wx / 500, 5) - 0.5) * 700;
-  const up = smoothstep(line + 20, line - 20, wz);
-  const top = SCARP_H + (noise(wx / 220, 9) - 0.5) * 80;
-  return H + up * top;
+  return H;   // 山在远处（RANGE_Z 以外），展品和小猫都在平原上
 }
 
 // 曲率：本地坐标 (x, z) 处地面相对镜头下沉多少
@@ -332,7 +394,26 @@ function buildGrid() {
   return g;
 }
 
-export function createTerrain({ rifts, textures, eraLut, walkLength, rain = { x: -1e9, r: 1 } }) {
+// 山脉参数查找表：沿路程 1024 格，关键帧之间线性插值
+function buildMountainLut(keys, walkLength) {
+  const W = 1024, data = new Uint8Array(W * 4);
+  const sorted = [...keys].sort((a, b) => a.x - b.x);
+  for (let i = 0; i < W; i++) {
+    const x = (i / (W - 1)) * walkLength;
+    let k = 1;
+    while (k < sorted.length - 1 && sorted[k].x < x) k++;
+    const a = sorted[k - 1], b = sorted[k];
+    const t = THREE.MathUtils.clamp((x - a.x) / Math.max(1e-6, b.x - a.x), 0, 1);
+    const f = (key) => a[key] + (b[key] - a[key]) * t;
+    data.set([f('height') * MTN_SCALE / 1000, f('sharp'), f('volcanic'), f('snow')].map((v) => Math.round(THREE.MathUtils.clamp(v, 0, 1) * 255)), i * 4);
+  }
+  const tex = new THREE.DataTexture(data, W, 1, THREE.RGBAFormat);
+  tex.magFilter = tex.minFilter = THREE.LinearFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+export function createTerrain({ rifts, textures, eraLut, walkLength, mountains, rain = { x: -1e9, r: 1 } }) {
   const uniforms = {
     uSnap: { value: 0 },
     uFrac: { value: 0 },
@@ -345,6 +426,7 @@ export function createTerrain({ rifts, textures, eraLut, walkLength, rain = { x:
     uMac2: { value: textures.macro2 },
     uEra: { value: eraLut },
     uWalkLen: { value: walkLength },
+    uMtn: { value: buildMountainLut(mountains, walkLength) },
     uRainX: { value: rain.x },
     uRainR: { value: rain.r },
   };
@@ -374,8 +456,7 @@ export function createTerrain({ rifts, textures, eraLut, walkLength, rain = { x:
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>\n${NOISE_GLSL}\n${HEIGHT_GLSL}`)
-      .replace('#include <begin_vertex>',
-        'vec3 tPos; vec3 tNrm; terrainDisplace(position, tPos, tNrm);\nvec3 transformed = tPos;');
+      .replace('#include <begin_vertex>', 'vec3 transformed = terrainPosition(position);');
   };
 
   const mesh = new THREE.Mesh(buildGrid(), material);

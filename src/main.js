@@ -4,7 +4,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {
-  STATIONS, EXHIBITS, EXTINCTIONS, WALK_LENGTH, GROUND_PALETTE, SKY_KEYS, ASH_SKY, ageAt, xAtAge,
+  STATIONS, EXHIBITS, EXTINCTIONS, WALK_LENGTH, GROUND_PALETTE, SKY_KEYS, ASH_SKY, MOUNTAIN_KEYS, ageAt, xAtAge,
 } from './timeline.js';
 import { createTerrain, rawHeight, curveDrop, CURVE_R } from './terrain.js';
 import { createSky } from './sky.js';
@@ -96,6 +96,7 @@ const terrain = createTerrain({
   textures: bakeGroundTextures(renderer),
   eraLut: buildEraLut(GROUND_PALETTE.map((p) => ({ ...p, x: xAtAge(p.age) })), WALK_LENGTH),
   walkLength: WALK_LENGTH,
+  mountains: MOUNTAIN_KEYS.map((k) => ({ ...k, x: xAtAge(k.age) })),
 });
 scene.add(terrain.mesh);
 EXHIBITS.forEach((e) => { e.groundH = rawHeight(e.x, e.z); });

@@ -191,6 +191,31 @@ export const GROUND_PALETTE = [
 // 天空的蓝主要来自氮气的瑞利散射，与氧气无关：只要大气清澈，远古也是蓝天。
 // 冥古宙原始大气浓厚多蒸汽，偏浑浊；太古宙可能有间歇的有机雾霾，蓝天偏暖偏淡；
 // 大氧化之后甲烷雾霾消失，是清澈的蓝天。
+// ---- 远处的山脉：随地质年代长高、变尖、积雪，又被侵蚀成圆丘，再被新的山取代 ----
+// height 山高（世界单位）；sharp 0 = 被侵蚀的老山（圆），1 = 年轻的山（尖脊）；volcanic 火山锥的多少；snow 积雪（0 无，1 雪线很低）
+export const MOUNTAIN_KEYS = [
+  { age: 4600, height: 110, sharp: 0.2, volcanic: 1.0, snow: 0 },     // 冥古宙：地壳又热又薄，到处是火山
+  { age: 3500, height: 170, sharp: 0.35, volcanic: 0.8, snow: 0 },
+  { age: 2400, height: 260, sharp: 0.5, volcanic: 0.4, snow: 0 },
+  { age: 1100, height: 540, sharp: 0.9, volcanic: 0.1, snow: 0.15 },  // 格林维尔造山运动：罗迪尼亚超大陆拼合
+  { age: 720, height: 460, sharp: 0.75, volcanic: 0.1, snow: 1.0 },   // 雪球地球：山也被冰雪覆盖
+  { age: 600, height: 330, sharp: 0.55, volcanic: 0.25, snow: 0.2 },
+  { age: 520, height: 250, sharp: 0.4, volcanic: 0.1, snow: 0 },
+  { age: 430, height: 480, sharp: 0.85, volcanic: 0.15, snow: 0.1 },  // 加里东造山运动
+  { age: 300, height: 760, sharp: 0.95, volcanic: 0.05, snow: 0.4 },  // 盘古大陆中央山脉：喜马拉雅级
+  { age: 252, height: 660, sharp: 0.8, volcanic: 0.5, snow: 0.2 },    // 西伯利亚大火成岩省
+  { age: 220, height: 360, sharp: 0.3, volcanic: 0.1, snow: 0 },      // 三叠纪：大山已被磨成圆丘
+  { age: 180, height: 300, sharp: 0.3, volcanic: 0.3, snow: 0 },
+  { age: 150, height: 340, sharp: 0.5, volcanic: 0.65, snow: 0 },     // 侏罗纪：环太平洋的火山弧
+  { age: 80, height: 540, sharp: 0.8, volcanic: 0.5, snow: 0.1 },     // 白垩纪晚期：拉拉米造山运动，落基山脉隆起
+  { age: 50, height: 620, sharp: 0.9, volcanic: 0.2, snow: 0.25 },    // 印度撞上亚洲，喜马拉雅开始隆起
+  { age: 10, height: 820, sharp: 1.0, volcanic: 0.1, snow: 0.5 },
+  { age: 2.6, height: 860, sharp: 1.0, volcanic: 0.1, snow: 0.85 },   // 第四纪冰期
+  { age: 0.02, height: 860, sharp: 1.0, volcanic: 0.1, snow: 1.0 },   // 末次冰盛期
+  { age: 0.0117, height: 860, sharp: 1.0, volcanic: 0.1, snow: 0.55 },
+  { age: 0, height: 860, sharp: 1.0, volcanic: 0.1, snow: 0.5 },
+];
+
 export const SKY_KEYS = [
   { age: 4600, horizon: '#b98f72', zenith: '#5d5552', haze: 1.0 },
   { age: 4000, horizon: '#d9cbb8', zenith: '#7f96ae', haze: 0.75 },
