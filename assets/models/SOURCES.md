@@ -16,6 +16,14 @@
 
 Courtesy of the Smithsonian Institution, National Museum of Natural History, Department of Paleobiology.
 
+## 莱顿国家古物博物馆（CC0）
+
+| 文件 | 标本 | 原始模型 |
+|---|---|---|
+| `cuneiform.glb` | 苏美尔行政泥板（大麦支出账目），公元前 21 世纪，乌尔第三王朝，今伊拉克南部 | [Kleitablet met een administratieve tekst](https://sketchfab.com/3d-models/kleitablet-met-een-administratieve-tekst-d7edb9af70e24cebb7f93480cac262d0)，Rijksmuseum van Oudheden |
+
+处理：`blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/cuneiform.glb --faces 300000 --tex 2048 --min-part 0.001`
+
 ## Sketchfab（CC BY 4.0）
 
 以下模型按 CC BY 4.0 使用，须署名。它们都经过 `tools/process_scan.py` 修改：合并网格并焊接顶点、删除扫描碎片、

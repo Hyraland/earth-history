@@ -76,6 +76,11 @@ export const SCANS = {
     file: 'lucy.glb', size: 600, orient: [-Math.PI / 2, 0, 0], yaw: -Math.PI / 2, color: '#d2b48a', sink: 0.3,
     credit: { ...BY4, by: 'JackalopeODDsENDs', title: '"Lucy" Australopithecus afarensis; AL 288-1（据标本照片建模）', url: 'https://sketchfab.com/3d-models/lucy-australopithecus-afarensis-al-288-1-9f6c06b0a4e54890a87486e414b8cb0d' },
   },
+  // 楔形文字泥板：正面（写满文字的一面）朝上平放，文字的行从左到右，朝镜头略微翘起
+  cuneiform: {
+    file: 'cuneiform.glb', size: 440, orient: [-Math.PI / 2, 0, 0], yaw: 0, tilt: 0.3, sink: 0.35, brighten: 1.1,
+    credit: { ...CC0, by: 'Rijksmuseum van Oudheden (Leiden)', title: 'Kleitablet met een administratieve tekst（乌尔第三王朝，公元前 21 世纪）', url: 'https://sketchfab.com/3d-models/kleitablet-met-een-administratieve-tekst-d7edb9af70e24cebb7f93480cac262d0' },
+  },
   mammoth: {
     file: 'mammoth.glb', size: 510, yaw: Math.PI / 2 - 0.3, color: '#9c7c5a',
     credit: { ...CC0, by: SI, title: 'Mammuthus primigenius (Blumbach), USNM V23792', url: 'https://3d.si.edu/object/3d/mammoth:341c96cd-f967-4540-8ed1-d3fc56d31f12' },

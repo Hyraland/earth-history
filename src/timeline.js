@@ -63,6 +63,9 @@ export const STATIONS = [
   { kind: 'event', age: 2.58, name: '第四纪冰期', desc: '冰盖周期性地推进和消退，冰期与间冰期开始交替。' },
   { kind: 'exhibit', id: 'mammoth', age: 0.02, name: '猛犸象', latin: 'Mammuthus primigenius',
     milestone: '末次冰盛期', desc: '长毛象的象牙可达 4 米长。它们与早期人类共同生活在冰原上。' },
+  // 后加的展品（extra）：插在猛犸象和终点之间，只让终点往后挪，前面所有展品的位置都不变
+  { kind: 'exhibit', id: 'cuneiform', age: 0.0041, z: -880, extra: true, name: '楔形文字泥板', latin: 'Cuneiform tablet · Ur III',
+    milestone: '文字与城市', desc: '约 5200 年前，美索不达米亚的乌鲁克和埃及几乎同时出现了文字，人类从此把自己的故事写了下来，史前变成了历史。这块泥板是一千年后乌尔第三王朝治下的大麦账目：谁在哪天从哪块田的仓库领了多少大麦。荷兰莱顿国家古物博物馆藏。' },
   { kind: 'end', age: 0, name: '现在', desc: '' },   // 结束语在结尾的星空里（main.js 的 ENDING_LINES）
 ];
 
