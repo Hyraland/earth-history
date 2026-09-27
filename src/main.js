@@ -168,7 +168,7 @@ setupCredits();
 const music = createMusic();
 const musicLink = document.getElementById('music-toggle');
 const showMusic = () => {
-  musicLink.textContent = music.muted ? t('♪ 音乐：关', '♪ Music: off') : music.started ? t('♪ 音乐：开', '♪ Music: on') : t('♪ 音乐：点击页面开始', '♪ Music: click to start');
+  musicLink.textContent = music.muted ? t('♪ 音乐：关', '♪ Music: off') : music.started ? t('♪ 音乐：开', '♪ Music: on') : t('♪ 音乐：点击页面开始', '♪ Music: click anywhere to start');
 };
 showMusic();
 musicLink.addEventListener('click', (e) => {
@@ -298,8 +298,8 @@ const refreshLightPanel = setupLightPanel();
 document.getElementById('lang-toggle').addEventListener('click', (e) => { e.stopPropagation(); switchLanguage(motion); });
 
 // ---- 结尾：走到"现在"时，天黑下来，镜头慢慢抬头望向银河，结束语一行行浮现，像展览的尾声 ----
-// 第一次走到这里时自动播放，播放时锁住操作，播完把操作还给观众；看过一次之后不再自动播放，
-// 菜单里出现"重播结尾"。往回走一段后，恢复观众原来选的光照。
+// 每次打开（或刷新）页面后第一次走到这里时自动播放，播放时锁住操作，播完把操作还给观众；
+// 同一次浏览里看过之后不再自动播放，菜单里出现"重播结尾"。往回走一段后，恢复观众原来选的光照。
 const END_X = WALK_LENGTH;
 const ENDING_LINES = t([
   '你走到了今天。',
@@ -309,15 +309,14 @@ const ENDING_LINES = t([
   '我们身体里的碳、氧和铁，都诞生在比太阳更古老的恒星里。',
   '谢谢你走完这段路。',
 ], [
-  'You have reached today.',
-  'For 4.6 billion years this planet cooled, rained, froze, and burst into flower.',
-  'After five mass extinctions, life began again every time.',
-  'Squeeze those 4.6 billion years into a single day, and our species appears in the last six seconds before midnight.',
+  'And here you are: today.',
+  'Over 4.6 billion years, this planet cooled, rained, froze over, and burst into flower.',
+  'Five times, mass extinction brought life to the brink, and five times it began again.',
+  'If Earth\'s 4.6 billion years were a single day, our species would appear in the last six seconds before midnight.',
   'The carbon, oxygen and iron in our bodies were forged in stars older than the Sun.',
-  'Thank you for walking this far.',
+  'Thank you for walking all this way.',
 ]);
 const ending = { state: 'idle', t: 0, lift: 0, saved: null, pending: false, seen: false };
-try { ending.seen = localStorage.getItem('earth-ending-seen') === '1'; } catch { /* 当作没看过 */ }
 const endingEl = document.getElementById('ending');
 const endingLines = endingEl.querySelector('.ending-lines');
 const replayLink = document.getElementById('ending-replay');
@@ -349,8 +348,7 @@ function finishEnding() {
   document.body.classList.remove('ending-playing');
   endingLines.classList.add('dim');
   walker.setGazeUp(0);
-  ending.seen = true;
-  try { localStorage.setItem('earth-ending-seen', '1'); } catch { /* 忽略 */ }
+  ending.seen = true;   // 只记在这次浏览里，刷新页面后又会自动播放
   replayLink.hidden = false;
 }
 function leaveEnding() {

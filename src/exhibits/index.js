@@ -103,7 +103,7 @@ export class ExhibitManager {
     el.innerHTML = `
       <div class="placard-card">
         <div class="placard-head"><span class="placard-idx">${String(e.index).padStart(2, '0')}</span>
-          <span class="placard-name">${e.name}</span>${placeholder ? `<span class="placard-tag">${t('模型待建', 'Model coming')}</span>` : ''}</div>
+          <span class="placard-name">${e.name}</span>${placeholder ? `<span class="placard-tag">${t('模型待建', 'Model coming soon')}</span>` : ''}</div>
         ${e.latin && e.latin !== e.name ? `<div class="placard-latin">${e.latin}</div>` : ''}
         <div class="placard-meta">${formatAge(e.age)} · ${e.milestone}</div>
         <div class="placard-desc">${e.desc}</div>

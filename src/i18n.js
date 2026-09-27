@@ -34,24 +34,24 @@ export function applyStaticText() {
   document.documentElement.lang = EN ? 'en' : 'zh-CN';
   document.body.classList.toggle('lang-en', EN);
   if (!EN) return;
-  document.title = 'Walking Through Earth History';
+  document.title = 'A Walk Through Deep Time';
   const set = (sel, html) => { const el = document.querySelector(sel); if (el) el.innerHTML = html; };
-  set('#help .help-keys', '<kbd>Space</kbd> pause · <kbd>→</kbd> fast · <kbd>←</kbd> back<br />Scroll to move through time · click the timeline to jump');
+  set('#help .help-keys', '<kbd>Space</kbd> pause · <kbd>→</kbd> speed up · <kbd>←</kbd> go back<br />Scroll to travel through time · click the timeline to jump');
   set('#ending-replay', '✦ Replay the ending<br />');
   set('#light-open', '☀ Light');
   set('#credits-open', 'Sources &amp; credits');
   set('#lang-toggle', '中文');
   set('.credits-title', 'Sources &amp; Credits');
-  set('#credits-intro', 'These fossil models are 3D scans or reconstructions published by museums and researchers, used under their licenses:');
-  set('#credits-procedural', 'The stromatolite, Grypania, Dickinsonia, Cooksonia, Tiktaalik, Lepidodendron, petrified forest, ammonite, sauropod trackway and Archaefructus are generated in code, modelled on published specimens. '
-    + 'The landscape, sky and lighting are generated too, and the music is synthesized live in the browser.');
-  set('#credits-cat', 'The guiding cat: <a href="https://sketchfab.com/3d-models/medium-poly-cat-in-motion-3d-model-free-5c31c77904de4e458d434c167ea0f4bc" target="_blank" rel="noopener">Medium poly Cat In Motion 3d Model Free</a>'
-    + ' · iRahulRajput · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · modified (compressed texture, added animation). '
+  set('#credits-intro', 'The fossil models below are 3D scans and reconstructions published by museums and researchers, used under their respective licences:');
+  set('#credits-procedural', 'The stromatolite, Grypania, Dickinsonia, Cooksonia, Tiktaalik, Lepidodendron, petrified forest, ammonite, sauropod trackway and Archaefructus are generated in code, based on published specimens. '
+    + 'The landscape, sky and lighting are procedural too, and the music is synthesised live in your browser.');
+  set('#credits-cat', 'Our guide, the cat: <a href="https://sketchfab.com/3d-models/medium-poly-cat-in-motion-3d-model-free-5c31c77904de4e458d434c167ea0f4bc" target="_blank" rel="noopener">Medium poly Cat In Motion 3d Model Free</a>'
+    + ' · iRahulRajput · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · modified (texture compressed, animation added). '
     + '3D rendering by <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> (MIT). Fonts: Noto Serif SC and Cormorant Garamond (SIL Open Font License).');
   set('.lp-modes [data-mode=day]', 'Day');
   set('.lp-modes [data-mode=sunset]', 'Sunset');
   set('.lp-modes [data-mode=night]', 'Night');
   set('#lp-az-label', '<span id="lp-body-label">Sun</span> direction');
-  set('#lp-el-label', 'Height');
-  set('.lp-foot', '0° is straight ahead into the distance, 180° is behind the camera · <a id="lp-reset" href="#" onclick="return false">Reset direction</a>');
+  set('#lp-el-label', 'Elevation');
+  set('.lp-foot', '0° points straight ahead, 180° is behind you · <a id="lp-reset" href="#" onclick="return false">Reset direction</a>');
 }

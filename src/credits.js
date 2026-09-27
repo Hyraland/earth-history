@@ -24,7 +24,7 @@ export function setupCredits() {
     lic.rel = 'noopener';
     lic.textContent = c.license;
     li.append(`${names[e.id]}${t('：', ': ')}`, title, ` · ${c.by} · `, lic,
-      c.modified ? t(' · 已修改（清理碎片、减面、压缩、调整朝向和尺寸）', ' · modified (cleaned, decimated, compressed, re-oriented and scaled)') : '');
+      c.modified ? t(' · 已修改（清理碎片、减面、压缩、调整朝向和尺寸）', ' · modified (cleaned up, simplified, compressed, re-oriented and rescaled)') : '');
     list.appendChild(li);
   }
 
