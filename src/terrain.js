@@ -316,23 +316,35 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
     float lo = mix(0.6, 0.56, modern);
     farm = fields * smoothstep(lo, lo + 0.05, patchN + 0.08 * bank) * (1.0 - chan);
     if (farm > 0.001) {
-      // ---- 古代的条田 ----
+      // ---- 古代的条田：大小不一的地块，每块沿自己的方向切成 2~5 条宽窄不等的田 ----
       const mat2 FR = mat2(0.93, 0.37, -0.37, 0.93);
       vec2 fp = FR * w;
-      const float FW = 38.0, FL = 170.0;
-      float colId = floor(fp.x / FW);
-      float stagger = 0.5 * mod(colId, 2.0);
-      vec2 fl2 = vec2(fract(fp.x / FW), fract(fp.y / FL + stagger));
-      vec3 fh = fl_hash3(vec2(colId, floor(fp.y / FL + stagger)) + 17.0);
+      const vec2 BLK = vec2(150.0, 190.0);
+      vec2 bcell = floor(fp / BLK), bf = fract(fp / BLK);
+      vec3 bh = fl_hash3(bcell + 5.0);
+      float alongY = step(0.5, bh.x);                                    // 田垄沿哪个方向
+      float nStrips = floor(2.0 + bh.y * 4.0);
+      float u = mix(bf.y, bf.x, alongY);                                 // 垂直于田垄的坐标（0..1）
+      float span = mix(BLK.y, BLK.x, alongY);
+      float k = 0.85 * bh.z, ph = bh.x * 40.0;
+      float wu = u + k * (sin(6.2832 * u + ph) - sin(ph)) / 6.2832;      // 单调扭曲：让各条田宽窄不一
+      wu /= 1.0 + k * (sin(6.2832 + ph) - sin(ph)) / 6.2832;
+      float stripId = floor(wu * nStrips);
+      float sf = fract(wu * nStrips);
+      float stripW = span / nStrips / max(0.2, 1.0 + k * cos(6.2832 * u + ph));   // 这一条田在世界单位里的宽度
+      vec3 fh = fl_hash3(bcell * 7.0 + stripId + 17.0);
       float aa = fwidth(fp.x) + 0.2;
-      float dike = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, min(min(fl2.x, 1.0 - fl2.x) * FW, min(fl2.y, 1.0 - fl2.y) * FL));
-      canal = (1.0 - smoothstep(2.2 - aa, 2.2 + aa, fl2.x * FW)) * step(mod(colId, 4.0), 0.5) * farm * (1.0 - modern);
+      float dBlock = min(min(bf.x, 1.0 - bf.x) * BLK.x, min(bf.y, 1.0 - bf.y) * BLK.y);
+      float dStrip = min(sf, 1.0 - sf) * stripW;
+      float dike = max(1.0 - smoothstep(1.2 - aa, 1.2 + aa, dBlock), 1.0 - smoothstep(0.7 - aa, 0.7 + aa, dStrip));
+      canal = (1.0 - smoothstep(2.2 - aa, 2.2 + aa, bf.x * BLK.x)) * step(mod(bcell.x, 3.0), 0.5) * farm * (1.0 - modern);
       vec3 crop = fh.x < 0.55 ? mix(vec3(0.6, 0.42, 0.12), vec3(0.74, 0.56, 0.2), fh.y)   // 熟透的大麦
                 : fh.x < 0.75 ? vec3(0.2, 0.32, 0.07)                                     // 还青着
                 : fh.x < 0.88 ? vec3(0.52, 0.44, 0.28)                                    // 麦茬
                 : vec3(0.32, 0.23, 0.14);                                                 // 休耕
-      float rowFade = 1.0 - smoothstep(0.08, 0.25, fwidth(fp.x * 0.83));                  // 太细就淡掉，免得出摩尔纹
-      float rows = (0.5 + 0.5 * sin(fp.x * 5.2)) * rowFade;
+      float rowCoord = mix(fp.x, fp.y, 1.0 - alongY);                   // 田垄顺着田块的长边
+      float rowFade = 1.0 - smoothstep(0.08, 0.25, fwidth(rowCoord * 0.83));   // 太细就淡掉，免得出摩尔纹
+      float rows = (0.5 + 0.5 * sin(rowCoord * 5.2)) * rowFade;
       crop *= (1.0 - 0.14 * rows) * (0.88 + 0.24 * texture2D(uDet, w / 61.0 + fh.xy).r);
       vec3 poppy;
       crop = mix(crop, poppy, wildflowers(w * 1.6 + 7.0, 0.16, 0.95, poppy) * step(fh.x, 0.55) * 0.9);
@@ -344,9 +356,17 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
       vec2 mp = MR * w;
       const float MS = 180.0;
       vec2 mcell = floor(mp / MS), mf = fract(mp / MS);
-      vec3 mh = fl_hash3(mcell + 91.0);
+      vec3 mb = fl_hash3(mcell + 53.0);
+      // 有的大方田再分成两三块大小不同的田（沿随机方向、随机位置切开）；完整的方田才可能是喷灌圆田
+      float splitN = mb.x < 0.45 ? 1.0 : (mb.x < 0.8 ? 2.0 : 3.0);
+      float sAxis = step(0.5, mb.y);
+      float su = mix(mf.x, mf.y, sAxis);
+      float cut1 = 0.3 + 0.4 * mb.z, cut2 = cut1 + (1.0 - cut1) * 0.5;
+      float part = splitN < 1.5 ? 0.0 : (su < cut1 ? 0.0 : (splitN < 2.5 || su < cut2 ? 1.0 : 2.0));
+      float dCut = splitN < 1.5 ? 1e3 : min(abs(su - cut1), splitN > 2.5 ? abs(su - cut2) : 1e3) * MS;
+      vec3 mh = fl_hash3(mcell + 91.0 + part * 3.7);
       float aaM = fwidth(mp.x) + 0.2;
-      float dM = min(min(mf.x, 1.0 - mf.x), min(mf.y, 1.0 - mf.y)) * MS;
+      float dM = min(min(min(mf.x, 1.0 - mf.x), min(mf.y, 1.0 - mf.y)) * MS, dCut);
       float hedge = 1.0 - smoothstep(1.6 - aaM, 1.6 + aaM, dM);
       float road = max((1.0 - smoothstep(2.4 - aaM, 2.4 + aaM, mf.x * MS)) * step(mod(mcell.x, 3.0), 0.5),
                        (1.0 - smoothstep(2.4 - aaM, 2.4 + aaM, mf.y * MS)) * step(mod(mcell.y, 4.0), 0.5));
@@ -356,13 +376,13 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
               : mh.x < 0.8 ? vec3(0.27, 0.18, 0.1)             // 翻耕过的土
               : vec3(0.26, 0.38, 0.1);                         // 牧草
       // 拖拉机车辙：顺着田块方向（每块田随机横竖）的平行细线
-      float along = mh.y < 0.5 ? mp.x : mp.y;
+      float along = splitN > 1.5 ? mix(mp.y, mp.x, sAxis) : (mh.y < 0.5 ? mp.x : mp.y);   // 分块后车辙顺着长边
       float tram = (1.0 - smoothstep(0.3, 0.9, abs(fract(along / 18.0) - 0.5) * 18.0)) * (1.0 - smoothstep(0.05, 0.2, fwidth(along / 18.0)));
       mc *= 1.0 - 0.18 * tram;
       mc *= 0.9 + 0.2 * texture2D(uDet, w / 97.0 + mh.xy).r;
       // 中心枢轴喷灌：方田里一个大圆，圆里是浇过水的绿色，圆外四角是干的
       float r = length(mf - 0.5) * MS;
-      float isPivot = step(0.55, mh.z);
+      float isPivot = step(0.55, mh.z) * step(splitN, 1.5);
       float circ = (1.0 - smoothstep(84.0 - aaM, 84.0 + aaM, r)) * isPivot;
       mc = mix(mc, mix(vec3(0.08, 0.3, 0.04), vec3(0.62, 0.52, 0.3), isPivot * (1.0 - circ)), isPivot);
       vec3 modernCol = mix(mc, vec3(0.1, 0.16, 0.06), hedge * 0.75);

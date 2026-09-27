@@ -48,7 +48,7 @@ export const SCANS = {
   // 再提亮约两成——三角龙的贴图里带着拍摄时的高光，看起来比这些平均值亮）；
   // 侧面朝向镜头，头朝行走方向并略微转向镜头，两排骨板和尾刺的轮廓最清楚
   stegosaurus: {
-    file: 'stegosaurus.glb', size: 840, orient: [0.061, 0, 0.205], yaw: Math.PI / 2 - 0.35, sink: 0.03,   // orient：扫描本身向一侧歪了约 12°，按四只脚拟合的平面转正
+    file: 'stegosaurus.glb', size: 756, orient: [0.061, 0, 0.205], yaw: Math.PI / 2 - 0.35, sink: 0.03,   // orient：扫描本身向一侧歪了约 12°，按四只脚拟合的平面转正
     mottle: { dark: '#381304', mid: '#703c1b', light: '#c08446' },
     credit: { ...BY4, by: 'Artec 3D', title: 'Stegosaurus Skeleton（丹佛自然与科学博物馆展出骨架，Triebold Paleontology 扫描）', titleEn: 'Stegosaurus Skeleton (mounted skeleton at the Denver Museum of Nature & Science, scanned by Triebold Paleontology)', url: 'https://sketchfab.com/3d-models/stegosaurus-skeleton-dc6e1c748484449587b81426d41da6cb' },
   },
