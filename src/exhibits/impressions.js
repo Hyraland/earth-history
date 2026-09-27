@@ -459,7 +459,7 @@ void surface(vec2 p, out vec3 col, out float h) {
     depth = max(depth, theroPrint(toLocal(p, uThero[i]), rr) * 0.55);
     rim = max(rim, rr * 0.6);
   }
-  h += rim * 0.05 * (1.0 - depth) - depth * 0.26;
+  h += rim * 0.05 * (1.0 - depth) - depth * 0.22;
   // 脚印里的泥更潮湿、颜色更深，最深处积了一点水
   col = mix(col, col * vec3(0.72, 0.72, 0.74), smoothstep(0.1, 0.6, depth));
   col = mix(col, vec3(0.22, 0.25, 0.27), smoothstep(0.8, 0.95, depth) * 0.6);
@@ -491,5 +491,5 @@ export function buildTrackway(exhibit, { renderer }) {
     surface: TRACKWAY, defines: `#define PES ${pes.length}\n#define THERO ${thero.length}`,
     uniforms: { uPes: { value: pes }, uManus: { value: manus }, uThero: { value: thero } },
   });
-  return placeOnGround(slab, { yaw: 0.02, sink: 0.45 });   // 大半埋进地里，像地表露出的一层岩面
+  return placeOnGround(slab, { yaw: 0.02, sink: 0.15 });   // 下部埋进地里；脚印的底仍高于地面，不会露出下面的大地
 }

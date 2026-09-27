@@ -1,12 +1,12 @@
-// 把展品放到地面上：朝向（yaw）→ 朝镜头翘起（tilt）→ 最低点落地，可按比例埋进地里（sink）。
+// 把展品放到地面上：左右找平（roll）→ 朝向（yaw）→ 朝镜头翘起（tilt）→ 最低点落地，可按比例埋进地里（sink）。
 // 返回展品对象和展牌锚点（展品右上方）。
 
 import * as THREE from 'three';
 
-export function placeOnGround(object, { yaw = 0, tilt = 0, sink = 0 } = {}) {
+export function placeOnGround(object, { yaw = 0, tilt = 0, roll = 0, sink = 0 } = {}) {
   const placed = new THREE.Group();
   placed.add(object);
-  placed.rotation.set(tilt, yaw, 0);   // 先转朝向，再整体朝镜头（+z）翘起
+  placed.rotation.set(tilt, yaw, roll);   // 依次：绕 z 找平、绕 y 转朝向、绕 x 朝镜头（+z）翘起
   placed.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(placed, true);
   const fullHeight = box.max.y - box.min.y;

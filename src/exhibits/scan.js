@@ -15,6 +15,7 @@ const loader = new GLTFLoader().setDRACOLoader(draco);
 // sink：埋进地里的比例（岩块标本只露出化石所在的层面）
 // brighten：颜色贴图的提亮倍数、relief：法线贴图的凹凸加强倍数（深色页岩上的浅浮雕从远处也要看得清）
 // base：在模型下面垫一块展示底板（颜色），散落的小骨头才有衬底
+// delight：去掉照片扫描贴图里"拍摄时的光影"（0..1），让模型只受场景的阳光照明；roughness：覆盖粗糙度
 // credit：署名（作者、原始页面、许可证）
 const CC0 = { license: 'CC0', licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/' };
 const BY4 = { license: 'CC BY 4.0', licenseUrl: 'https://creativecommons.org/licenses/by/4.0/', modified: true };
@@ -28,25 +29,25 @@ export const SCANS = {
   },
   // 邓氏鱼头骨：扫描的后脑是空的，让鼻吻朝向镜头右前方
   dunkleosteus: {
-    file: 'dunkleosteus.glb', size: 300, yaw: -0.75,
+    file: 'dunkleosteus.glb', size: 300, yaw: -0.75, delight: 0.5, roughness: 0.6, brighten: 1.3,
     credit: { ...BY4, by: 'MattMakesSwords - Scans', title: 'Dunkleosteus', url: 'https://sketchfab.com/3d-models/dunkleosteus-58f39882a0ee4921baeb2c3057f46041' },
   },
-  // 霍尔茨马登的鱼龙石板：原本竖着展示，放倒平躺
+  // 霍尔茨马登的鱼龙石板：原本竖着展示，放倒平躺；roll 和 yaw 按实测找平、对正（扫描本身右端高约 1.9°，外接矩形偏 1°）
   ichthyosaur: {
-    file: 'ichthyosaur.glb', size: 560, orient: [-Math.PI / 2, 0, 0], tilt: 0.32, yaw: 0.05, brighten: 1.8,
+    file: 'ichthyosaur.glb', size: 560, orient: [-Math.PI / 2, 0, 0], tilt: 0.32, yaw: 0.017, roll: -0.033, brighten: 2.4,
     credit: { ...BY4, by: 'Carter County Museum', title: 'CCM Ichthyosaur', url: 'https://sketchfab.com/3d-models/ccm-ichthyosaur-85fe3715565545669f184761d9dbdbf8' },
   },
   archaeopteryx: {
-    file: 'archaeopteryx.glb', size: 330, orient: [-Math.PI / 2, 0, 0], yaw: 0.08, sink: 0.3,
+    file: 'archaeopteryx.glb', size: 330, orient: [-Math.PI / 2, 0, 0], yaw: 0, sink: 0.3,   // 石板的边与行走方向平行
     credit: { ...CC0, by: SI, title: 'Archaeopteryx siemensii Dames, USNM PAL509743', url: 'https://3d.si.edu/object/3d/archaeopteryx:391660da-7c49-499c-91f5-88a298686c09' },
   },
   triceratops: {
-    file: 'triceratops.glb', size: 360, orient: [-0.28, 0, Math.PI / 2], yaw: Math.PI / 2 - 0.35,
+    file: 'triceratops.glb', size: 360, orient: [-0.28, 0, Math.PI / 2], yaw: Math.PI / 2 - 0.35, tilt: -0.26,   // 朝远处崖壁一侧转 15°
     credit: { ...CC0, by: SI, title: 'Triceratops horridus Marsh, 1889, USNM PAL500000', url: 'https://3d.si.edu/object/3d/triceratops-horridus-marsh-1889:d8c623be-4ebc-11ea-b77f-2e728ce88125' },
   },
   // 二齿兽头骨：真实大小只有十几厘米，放大成一座"头骨山"，吻端朝镜头右前方
   diictodon: {
-    file: 'diictodon.glb', size: 300, orient: [0, 0, 0.7], yaw: 0.2, brighten: 1.5,
+    file: 'diictodon.glb', size: 300, orient: [0, 0, 0.44], yaw: 0.2, brighten: 1.5,
     credit: { ...CC0, by: SI, title: 'Diictodon feliceps Owen, 1876: skull, USNM V22939', url: 'https://3d.si.edu/object/3d/diictodon:3b3add34-8d97-4a66-96fa-4e2d343db77c' },
   },
   cetotherium: {
@@ -73,10 +74,19 @@ export async function buildScan(exhibit, { renderer }) {
     if (!o.isMesh) return;
     o.castShadow = true;
     o.receiveShadow = true;
+    // 有些 Sketchfab 导出的模型是"无光照"材质（KHR_materials_unlit），只显示贴图里拍摄时的明暗；
+    // 换成受光照的标准材质，模型才会被场景里的太阳照亮
+    if (o.material.isMeshBasicMaterial) {
+      const old = o.material;
+      o.material = new THREE.MeshStandardMaterial({ map: old.map, color: old.color, roughness: 0.8, side: old.side });
+      old.dispose();
+    }
     const m = o.material;
     m.metalness = 0;
     if (cfg.color && !m.map) m.color.set(cfg.color);
     if (cfg.brighten) m.color.multiplyScalar(cfg.brighten);
+    if (cfg.roughness !== undefined) { m.roughness = cfg.roughness; m.roughnessMap = null; }
+    if (cfg.delight && m.map) delight(m, cfg.delight);
     if (cfg.relief && m.normalMap) m.normalScale.multiplyScalar(cfg.relief);
     for (const t of [m.map, m.normalMap]) if (t) t.anisotropy = aniso;
   });
@@ -93,6 +103,25 @@ export async function buildScan(exhibit, { renderer }) {
   oriented.scale.setScalar(cfg.size / Math.max(size0.x, size0.y, size0.z));
   if (cfg.base) oriented.add(displayBase(box0, cfg.base));
   return { ...placeOnGround(oriented, cfg), credit: cfg.credit };
+}
+
+// 去光照：照片扫描的颜色贴图里带着拍摄现场的明暗。用贴图低分辨率层级（mipmap）估计这种大尺度明暗，
+// 再把它除掉，只留下材质本身的颜色和细节，于是模型的明暗完全由场景里的太阳和天空决定。
+function delight(material, amount) {
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uDelight = { value: amount };
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform float uDelight;')
+      .replace('#include <map_fragment>', /* glsl */ `
+        #ifdef USE_MAP
+          vec4 texel = texture2D(map, vMapUv);
+          float lumLow = dot(textureLod(map, vMapUv, 5.5).rgb, vec3(0.299, 0.587, 0.114));
+          float lumAll = dot(textureLod(map, vec2(0.5), 20.0).rgb, vec3(0.299, 0.587, 0.114));
+          float k = clamp(lumAll / max(lumLow, 0.02), 0.55, 1.9);
+          diffuseColor *= vec4(texel.rgb * mix(1.0, k, uDelight), texel.a);
+        #endif`);
+  };
+  material.needsUpdate = true;
 }
 
 // 展示底板：比模型的平面范围大一圈的薄板，贴在模型底下（在模型自身的坐标里，缩放前）
