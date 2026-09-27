@@ -4,7 +4,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {
-  EXHIBITS, EXTINCTIONS, WALK_LENGTH, GROUND_PALETTE, SKY_KEYS, ASH_SKY, ageAt, xAtAge,
+  STATIONS, EXHIBITS, EXTINCTIONS, WALK_LENGTH, GROUND_PALETTE, SKY_KEYS, ASH_SKY, ageAt, xAtAge,
 } from './timeline.js';
 import { createTerrain, rawHeight, curveDrop, CURVE_R } from './terrain.js';
 import { createSky } from './sky.js';
@@ -13,6 +13,7 @@ import { createWalker } from './walker.js';
 import { ExhibitManager } from './exhibits/index.js';
 import { createHud } from './hud.js';
 import { setupCredits } from './credits.js';
+import { createRain } from './rain.js';
 
 // ---- 镜头与行走参数 ----
 const CAMERA = { y: 380, z: 0, pitch: -0.36, fov: 40 };
@@ -85,14 +86,20 @@ scene.environmentIntensity = 0.25;   // 天空漫射光只占直射阳光的一�
 
 // ---- 地面 ----
 const rifts = EXTINCTIONS.map((e) => e.x);
+// 卡尼期洪积事件：这一站周围下雨
+const RAIN = { x: STATIONS.find((s) => s.rain).x, r: 900 };
 const terrain = createTerrain({
   rifts,
+  rain: RAIN,
   textures: bakeGroundTextures(renderer),
   eraLut: buildEraLut(GROUND_PALETTE.map((p) => ({ ...p, x: xAtAge(p.age) })), WALK_LENGTH),
   walkLength: WALK_LENGTH,
 });
 scene.add(terrain.mesh);
 EXHIBITS.forEach((e) => { e.groundH = rawHeight(e.x, e.z); });
+
+const rain = createRain({ centerX: RAIN.x, radius: RAIN.r });
+scene.add(rain.mesh);
 
 // ---- 小人 ----
 const walker = createWalker();
@@ -123,8 +130,8 @@ const motion = {
 const minScroll = -WALKER.x, maxScroll = WALK_LENGTH - WALKER.x;
 const jump = (walkerX) => { motion.jumpTo = walkerX - WALKER.x; motion.paused = false; };
 
-// 网址带 #展品id（例如 index.html#stegosaurus）时，直接停在这件展品前面
-const linked = EXHIBITS.find((e) => e.id === decodeURIComponent(location.hash.slice(1)));
+// 网址带 #站点id（例如 index.html#stegosaurus、#carnian）时，直接停在这一站前面
+const linked = STATIONS.find((s) => s.id && s.id === decodeURIComponent(location.hash.slice(1)));
 if (linked) Object.assign(motion, { scroll: linked.x - 330 - WALKER.x, paused: true });
 
 window.addEventListener('keydown', (e) => {
@@ -147,6 +154,8 @@ setupCredits();
 // ---- 天空颜色随年代变化，大灭绝前后蒙上一层灰 ----
 const skyKeys = SKY_KEYS.map((k) => ({ ...k, h: new THREE.Color(k.horizon), z: new THREE.Color(k.zenith) }));
 const ashH = new THREE.Color(ASH_SKY.horizon), ashZ = new THREE.Color(ASH_SKY.zenith);
+const rainH = new THREE.Color('#9fa8ad'), rainZ = new THREE.Color('#5f6b75');   // 阴雨天：灰蓝色，头顶更暗
+let rainSky = 0;
 function updateAtmosphere(age, walkerX) {
   let i = 1;
   while (i < skyKeys.length - 1 && age < skyKeys[i].age) i++;
@@ -157,14 +166,18 @@ function updateAtmosphere(age, walkerX) {
   for (const ex of EXTINCTIONS) ash = Math.max(ash, 1 - THREE.MathUtils.smoothstep(Math.abs(walkerX - ex.x), 250, 1100));
   ash *= 0.75;
   haze = THREE.MathUtils.lerp(haze, 1, ash);
+  // 走近雨区：天色转阴，云压下来，阳光变弱
+  rainSky = 1 - THREE.MathUtils.smoothstep(Math.abs(walkerX - RAIN.x), RAIN.r * 0.35, RAIN.r * 1.4);
+  haze = THREE.MathUtils.lerp(haze, 0.85, rainSky);
+  sky.uniforms.uCloud.value = rainSky;
 
-  const horizon = sky.uniforms.uHorizon.value.copy(a.h).lerp(b.h, t).lerp(ashH, ash);
-  const zenith = sky.uniforms.uZenith.value.copy(a.z).lerp(b.z, t).lerp(ashZ, ash);
+  const horizon = sky.uniforms.uHorizon.value.copy(a.h).lerp(b.h, t).lerp(ashH, ash).lerp(rainH, rainSky * 0.85);
+  const zenith = sky.uniforms.uZenith.value.copy(a.z).lerp(b.z, t).lerp(ashZ, ash).lerp(rainZ, rainSky * 0.85);
   scene.fog.color.copy(horizon);
   scene.fog.density = 0.00011 + 0.00019 * haze;
   terrain.uniforms.uSkyHorizon.value.copy(horizon);
   hemi.color.copy(zenith).lerp(horizon, 0.6);
-  sun.intensity = SUN_POWER * (1 - 0.45 * ash);
+  sun.intensity = SUN_POWER * (1 - 0.45 * ash) * (1 - 0.88 * rainSky);
 }
 
 // ---- 自适应分辨率 ----
@@ -216,6 +229,9 @@ function step() {
   updateEnvironment(time);
   hud.update(walkerX, age);
   sky.mesh.position.copy(camera.position);
+  sky.uniforms.uTime.value = time;
+  // 雨幕：雨区进入画面范围（左右约 1800）时才绘制
+  rain.update(time, motion.scroll, 1 - THREE.MathUtils.smoothstep(Math.abs(motion.scroll - RAIN.x), RAIN.r + 1600, RAIN.r + 2100));
 
   composer.render();
 }

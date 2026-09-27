@@ -28,6 +28,15 @@ export const STATIONS = [
   { kind: 'exhibit', id: 'diictodon', age: 258, name: '二齿兽', latin: 'Diictodon feliceps',
     milestone: '哺乳动物的远祖支系', desc: '二叠纪晚期的小型植食性合弓类，嘴里只有一对獠牙，会挖洞生活。合弓类不是恐龙，和哺乳动物的亲缘关系反而更近。' },
   { kind: 'extinction', age: 252, name: '二叠纪末大灭绝', desc: '西伯利亚大规模火山喷发，八成以上的海洋物种灭绝，是地球史上最严重的一次。' },
+  // ---- 三叠纪：大灭绝后的恢复，盘古大陆上的一场大雨，恐龙时代的前夜 ----
+  // 这三站是后加的（extra，不占 DEPTHS 的循环位置）；pad 是额外拉长的路，让这一段总共正好加长 4096，
+  // 和地面宏观贴图的周期一致——后面各展品脚下的河流、水域、植被都和加这三站之前一模一样
+  { kind: 'exhibit', id: 'thrinaxodon', age: 250, z: -860, extra: true, name: '三尖叉齿兽', latin: 'Thrinaxodon liorhinus',
+    milestone: '大灭绝的幸存者', desc: '二叠纪末大灭绝之后最早的幸存者之一，常在自己挖的洞里被发现，身体蜷成一团。它已经有分化的牙齿和能边嚼边呼吸的次生腭，是哺乳动物的近亲。这具骨架由 J. W. Kitching 于 1961 年在南非采集，现藏史密森尼国家自然历史博物馆。' },
+  { kind: 'event', id: 'carnian', age: 233, pad: 208, rain: true, name: '卡尼期洪积事件',
+    desc: '盘古大陆上下了一两百万年的雨。干旱的内陆变得湿润，植被和动物群大换班——雨停之后，恐龙在各个大陆上迅速扩散开来。' },
+  { kind: 'exhibit', id: 'petrified', age: 220, z: -900, pad: 208, extra: true, name: '石化森林', latin: 'Agathoxylon arizonicum',
+    milestone: '盘古大陆的森林', desc: '洪水冲倒的南洋杉类大树被埋进河沙和火山灰，木质被二氧化硅置换成玛瑙和碧玉。石化的树干很脆，断成一截一截；截面上是铁和锰染出的红、黄、紫色。亚利桑那州石化森林国家公园。' },
   { kind: 'extinction', age: 201, name: '三叠纪末大灭绝', desc: '中大西洋岩浆省喷发。灾难之后，恐龙崛起为陆地霸主。' },
   // 菊石放大后往远处挪（z: -1000），不挡小人的路
   { kind: 'exhibit', id: 'ammonite', age: 195, z: -1000, name: '菊石', latin: 'Asteroceras obtusum',
@@ -65,7 +74,7 @@ const DEPTHS = [-840, -900, -800, -930, -870];
 
 let x = 0;
 STATIONS.forEach((s, i) => {
-  if (i > 0) x += HALF_SPACING[STATIONS[i - 1].kind] + HALF_SPACING[s.kind];
+  if (i > 0) x += HALF_SPACING[STATIONS[i - 1].kind] + HALF_SPACING[s.kind] + (s.pad ?? 0);
   s.x = x;
 });
 export const WALK_LENGTH = x;

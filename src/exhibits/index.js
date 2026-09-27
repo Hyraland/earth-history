@@ -19,6 +19,7 @@ const BUILDERS = {
   trackway: (e, ctx) => import('./impressions.js').then((m) => m.buildTrackway(e, ctx)),
   // 立体的程序化化石
   stromatolite: (e, ctx) => import('./stromatolite.js').then((m) => m.buildStromatolite(e, ctx)),
+  petrified: (e, ctx) => import('./petrified.js').then((m) => m.buildPetrified(e, ctx)),
   lepidodendron: (e, ctx) => import('./lepidodendron.js').then((m) => m.buildLepidodendron(e, ctx)),
 };
 // 史密森尼扫描模型

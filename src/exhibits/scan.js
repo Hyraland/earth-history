@@ -17,6 +17,7 @@ const loader = new GLTFLoader().setDRACOLoader(draco);
 // base：在模型下面垫一块展示底板（颜色），散落的小骨头才有衬底
 // delight：去掉照片扫描贴图里"拍摄时的光影"（0..1），让模型只受场景的阳光照明；roughness：覆盖粗糙度
 // bleach：把贴图颜色漂向米白色（0..1），保留明暗细节
+// tint：给颜色贴图乘上一个颜色（偏灰的扫描在逆光的蓝色天光下会显得发冷，乘一点暖色）
 // mottle：没有颜色贴图时，用噪声在深、中、浅三种颜色之间调出化石骨骼的斑驳色（按模型自身坐标，跟着骨头走）
 // credit：署名（作者、原始页面、许可证）
 const CC0 = { license: 'CC0', licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/' };
@@ -61,6 +62,11 @@ export const SCANS = {
     file: 'diictodon.glb', size: 300, orient: [0, 0, 0.44], yaw: -Math.PI / 4, brighten: 1.5,   // 像邓氏鱼一样，吻端 45° 朝向镜头右前方
     credit: { ...CC0, by: SI, title: 'Diictodon feliceps Owen, 1876: skull, USNM V22939', url: 'https://3d.si.edu/object/3d/diictodon:3b3add34-8d97-4a66-96fa-4e2d343db77c' },
   },
+  // 三尖叉齿兽：嵌在岩块里、关节相连的骨架（真实长约 23 厘米），背面朝上，头朝行走方向，略微朝镜头翘起露出脊椎和肋骨
+  thrinaxodon: {
+    file: 'thrinaxodon.glb', size: 420, yaw: Math.PI / 2, tilt: 0.5, sink: 0.2, brighten: 1.4, delight: 0.5, bleach: 0.35, roughness: 0.85, tint: '#f2cfa0',
+    credit: { ...CC0, by: SI, title: 'Thrinaxodon liorhinus Seeley, 1894, USNM V22812', url: 'https://3d.si.edu/object/3d/thrinaxodon-liorhinus-seeley-1894:e0ac6fea-5384-4787-9abc-cdfffec833c1' },
+  },
   cetotherium: {
     file: 'cetotherium.glb', size: 945, yaw: Math.PI / 2,
     credit: { ...BY4, by: 'SchmalhausenEvolMorph', title: 'Cetotherium riabinini assembled skeleton', url: 'https://sketchfab.com/3d-models/cetotherium-riabinini-assembled-skeleton-8532da04db044d9c8417fcec43053e3a' },
@@ -95,6 +101,7 @@ export async function buildScan(exhibit, { renderer }) {
     const m = o.material;
     m.metalness = 0;
     if (cfg.color && !m.map) m.color.set(cfg.color);
+    if (cfg.tint && m.map) m.color.set(cfg.tint);
     if (cfg.brighten) m.color.multiplyScalar(cfg.brighten);
     if (cfg.roughness !== undefined) { m.roughness = cfg.roughness; m.roughnessMap = null; }
     if ((cfg.delight || cfg.bleach) && m.map) retouch(m, cfg);

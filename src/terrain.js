@@ -88,6 +88,8 @@ uniform float uWalkLen;
 uniform float uRifts[RIFT_COUNT];
 uniform float uTime;
 uniform vec3 uSkyHorizon;
+uniform float uRainX;       // 雨区中心（世界 x）和半径：地面变湿、积水
+uniform float uRainR;
 varying vec2 vW;
 varying float vH;
 varying vec3 vNw;
@@ -188,12 +190,14 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
   float bank = max(smoothstep(0.2, 0.7, m1.b), smoothstep(0.53, 0.83, m1.a) * 0.7) * (1.0 - ice * 0.7);
   col = mix(col, mix(col, e.v * 0.9, 0.55), bank * veg * (1.0 - chan));
   col = mix(col, e.b * 1.12, chan * 0.8);
-  float chanWater = chan * smoothstep(0.05, 0.3, water + veg * 0.3) * (1.0 - lava);
+  // 雨区：河道涨满水，低洼处积起水坑，其余地面被淋湿变深
+  float rainW = 1.0 - smoothstep(uRainR * 0.5, uRainR * 1.3, abs(w.x - uRainX));
+  float chanWater = chan * max(smoothstep(0.05, 0.3, water + veg * 0.3), rainW) * (1.0 - lava);
 
   // 水：浅海、潮坪、沼泽
-  float wl = mix(0.8, 0.4, water);
+  float wl = mix(0.8, 0.4, water) - rainW * 0.08;
   float wn = m1.g * 0.8 + meso * 0.2;
-  float hasWater = step(0.001, water);
+  float hasWater = max(step(0.001, water), step(0.02, rainW));
   float wet = smoothstep(wl - 0.05, wl, wn) * hasWater;
   float wm = smoothstep(wl, wl + 0.012, wn) * hasWater;
   col = mix(col, col * 0.62, wet * (1.0 - wm));
@@ -201,9 +205,11 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
   // 水面：颜色偏深，让天空和太阳的反光显出来；细碎的波纹制造闪光
   vec2 rt = vec2(uTime * 2.0, uTime * 1.3);
   float rip = texture2D(uDet, (w + rt) / 23.0).r + texture2D(uDet, (w - rt.yx) / 31.0 + 0.5).r;
+  col *= 1.0 - 0.3 * rainW * (1.0 - wetness);
+  rough = mix(rough, 0.5, rainW * 0.6);
   col = mix(col, e.wc * 0.55, wetness);
-  rough = mix(rough, 0.11, wetness);
-  h = mix(h, rip * 0.4, wetness);
+  rough = mix(rough, mix(0.11, 0.3, rainW), wetness);   // 阴雨天水面被雨点打花，没有镜面般的反光
+  h = mix(h, rip * 0.4 * (1.0 + rainW * 2.0), wetness);   // 雨点打得水面更碎
   emi *= 1.0 - wm;
 
   // 大灭绝：焦黑的灰烬带
@@ -325,7 +331,7 @@ function buildGrid() {
   return g;
 }
 
-export function createTerrain({ rifts, textures, eraLut, walkLength }) {
+export function createTerrain({ rifts, textures, eraLut, walkLength, rain = { x: -1e9, r: 1 } }) {
   const uniforms = {
     uSnap: { value: 0 },
     uFrac: { value: 0 },
@@ -338,6 +344,8 @@ export function createTerrain({ rifts, textures, eraLut, walkLength }) {
     uMac2: { value: textures.macro2 },
     uEra: { value: eraLut },
     uWalkLen: { value: walkLength },
+    uRainX: { value: rain.x },
+    uRainR: { value: rain.r },
   };
   const defines = { RIFT_COUNT: rifts.length };
 
