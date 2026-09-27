@@ -16,6 +16,7 @@ const loader = new GLTFLoader().setDRACOLoader(draco);
 // brighten：颜色贴图的提亮倍数、relief：法线贴图的凹凸加强倍数（深色页岩上的浅浮雕从远处也要看得清）
 // base：在模型下面垫一块展示底板（颜色），散落的小骨头才有衬底
 // delight：去掉照片扫描贴图里"拍摄时的光影"（0..1），让模型只受场景的阳光照明；roughness：覆盖粗糙度
+// bleach：把贴图颜色漂向米白色（0..1），保留明暗细节
 // credit：署名（作者、原始页面、许可证）
 const CC0 = { license: 'CC0', licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/' };
 const BY4 = { license: 'CC BY 4.0', licenseUrl: 'https://creativecommons.org/licenses/by/4.0/', modified: true };
@@ -32,9 +33,9 @@ export const SCANS = {
     file: 'dunkleosteus.glb', size: 300, yaw: -0.75, delight: 0.5, roughness: 0.6, brighten: 1.3,
     credit: { ...BY4, by: 'MattMakesSwords - Scans', title: 'Dunkleosteus', url: 'https://sketchfab.com/3d-models/dunkleosteus-58f39882a0ee4921baeb2c3057f46041' },
   },
-  // 霍尔茨马登的鱼龙石板：原本竖着展示，放倒平躺；roll 和 yaw 按实测找平、对正（扫描本身右端高约 1.9°，外接矩形偏 1°）
+  // 霍尔茨马登的鱼龙石板：原本竖着展示，放倒平躺；roll 和 yaw 是在场景里对照画面找平的（扫描本身右端偏高）
   ichthyosaur: {
-    file: 'ichthyosaur.glb', size: 560, orient: [-Math.PI / 2, 0, 0], tilt: 0.32, yaw: 0.017, roll: -0.033, brighten: 2.4,
+    file: 'ichthyosaur.glb', size: 560, orient: [-Math.PI / 2, 0, 0], tilt: 0.32, yaw: -0.01, roll: -0.055, brighten: 2.4,
     credit: { ...BY4, by: 'Carter County Museum', title: 'CCM Ichthyosaur', url: 'https://sketchfab.com/3d-models/ccm-ichthyosaur-85fe3715565545669f184761d9dbdbf8' },
   },
   archaeopteryx: {
@@ -42,7 +43,8 @@ export const SCANS = {
     credit: { ...CC0, by: SI, title: 'Archaeopteryx siemensii Dames, USNM PAL509743', url: 'https://3d.si.edu/object/3d/archaeopteryx:391660da-7c49-499c-91f5-88a298686c09' },
   },
   triceratops: {
-    file: 'triceratops.glb', size: 360, orient: [-0.28, 0, Math.PI / 2], yaw: Math.PI / 2 - 0.35, tilt: -0.26,   // 朝远处崖壁一侧转 15°
+    // 绕身体长轴再转 -0.3，骨架才真正直立（脊柱正在四只脚上方），四脚着地；颜色漂成博物馆复制骨架常见的米白色
+    file: 'triceratops.glb', size: 360, orient: [-0.28, 0, Math.PI / 2 - 0.3], yaw: Math.PI / 2 - 0.35, bleach: 0.8, brighten: 1.2,
     credit: { ...CC0, by: SI, title: 'Triceratops horridus Marsh, 1889, USNM PAL500000', url: 'https://3d.si.edu/object/3d/triceratops-horridus-marsh-1889:d8c623be-4ebc-11ea-b77f-2e728ce88125' },
   },
   // 二齿兽头骨：真实大小只有十几厘米，放大成一座"头骨山"，吻端朝镜头右前方
@@ -54,9 +56,9 @@ export const SCANS = {
     file: 'cetotherium.glb', size: 420, yaw: Math.PI / 2,
     credit: { ...BY4, by: 'SchmalhausenEvolMorph', title: 'Cetotherium riabinini assembled skeleton', url: 'https://sketchfab.com/3d-models/cetotherium-riabinini-assembled-skeleton-8532da04db044d9c8417fcec43053e3a' },
   },
-  // 露西：骨骼按博物馆陈列的方式平摊，头朝行走方向；模型没有颜色贴图，配化石骨骼的颜色
+  // 露西：骨骼按博物馆陈列的方式平摊，头朝行走方向，半埋在地里；模型没有颜色贴图，配化石骨骼的颜色
   lucy: {
-    file: 'lucy.glb', size: 470, orient: [-Math.PI / 2, 0, 0], yaw: -Math.PI / 2, tilt: 0.3, color: '#d2b48a', base: '#4a4038',
+    file: 'lucy.glb', size: 600, orient: [-Math.PI / 2, 0, 0], yaw: -Math.PI / 2, color: '#d2b48a', sink: 0.3,
     credit: { ...BY4, by: 'JackalopeODDsENDs', title: '"Lucy" Australopithecus afarensis; AL 288-1（据标本照片建模）', url: 'https://sketchfab.com/3d-models/lucy-australopithecus-afarensis-al-288-1-9f6c06b0a4e54890a87486e414b8cb0d' },
   },
   mammoth: {
@@ -86,7 +88,7 @@ export async function buildScan(exhibit, { renderer }) {
     if (cfg.color && !m.map) m.color.set(cfg.color);
     if (cfg.brighten) m.color.multiplyScalar(cfg.brighten);
     if (cfg.roughness !== undefined) { m.roughness = cfg.roughness; m.roughnessMap = null; }
-    if (cfg.delight && m.map) delight(m, cfg.delight);
+    if ((cfg.delight || cfg.bleach) && m.map) retouch(m, cfg);
     if (cfg.relief && m.normalMap) m.normalScale.multiplyScalar(cfg.relief);
     for (const t of [m.map, m.normalMap]) if (t) t.anisotropy = aniso;
   });
@@ -105,20 +107,26 @@ export async function buildScan(exhibit, { renderer }) {
   return { ...placeOnGround(oriented, cfg), credit: cfg.credit };
 }
 
-// 去光照：照片扫描的颜色贴图里带着拍摄现场的明暗。用贴图低分辨率层级（mipmap）估计这种大尺度明暗，
-// 再把它除掉，只留下材质本身的颜色和细节，于是模型的明暗完全由场景里的太阳和天空决定。
-function delight(material, amount) {
+// 修饰扫描贴图：
+//   去光照 —— 照片扫描的颜色贴图里带着拍摄现场的明暗。用贴图低分辨率层级（mipmap）估计这种大尺度明暗，
+//             再把它除掉，只留下材质本身的颜色和细节，于是模型的明暗完全由场景里的太阳和天空决定。
+//   漂白   —— 把颜色换成米白色，但按原贴图的相对明暗调制，骨骼的细节还在。
+function retouch(material, { delight = 0, bleach = 0 }) {
   material.onBeforeCompile = (shader) => {
-    shader.uniforms.uDelight = { value: amount };
+    shader.uniforms.uDelight = { value: delight };
+    shader.uniforms.uBleach = { value: bleach };
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform float uDelight;')
+      .replace('#include <common>', '#include <common>\nuniform float uDelight;\nuniform float uBleach;')
       .replace('#include <map_fragment>', /* glsl */ `
         #ifdef USE_MAP
           vec4 texel = texture2D(map, vMapUv);
-          float lumLow = dot(textureLod(map, vMapUv, 5.5).rgb, vec3(0.299, 0.587, 0.114));
-          float lumAll = dot(textureLod(map, vec2(0.5), 20.0).rgb, vec3(0.299, 0.587, 0.114));
-          float k = clamp(lumAll / max(lumLow, 0.02), 0.55, 1.9);
-          diffuseColor *= vec4(texel.rgb * mix(1.0, k, uDelight), texel.a);
+          vec3 W = vec3(0.299, 0.587, 0.114);
+          float lumLow = dot(textureLod(map, vMapUv, 5.5).rgb, W);
+          float lumAll = dot(textureLod(map, vec2(0.5), 20.0).rgb, W);
+          vec3 rgb = texel.rgb * mix(1.0, clamp(lumAll / max(lumLow, 0.02), 0.55, 1.9), uDelight);
+          float detail = clamp(dot(rgb, W) / max(lumAll, 0.02), 0.35, 1.7);
+          rgb = mix(rgb, vec3(0.94, 0.87, 0.76) * detail, uBleach);
+          diffuseColor *= vec4(rgb, texel.a);
         #endif`);
   };
   material.needsUpdate = true;
