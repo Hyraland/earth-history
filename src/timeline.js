@@ -36,7 +36,11 @@ export const STATIONS = [
     milestone: '爬行动物重返海洋', desc: '德国霍尔茨马登黑色页岩中的完整骨架。鱼龙的祖先是陆地爬行动物，三叠纪初期重新回到海洋，演化出和海豚相似的流线体形。' },
   { kind: 'exhibit', id: 'trackway', age: 155, name: '蜥脚类足迹', latin: 'Parabrontopodus',
     milestone: '恐龙称霸陆地', desc: '一只巨大的蜥脚类恐龙走过潮湿的泥滩：后脚印像一个大圆盆，前脚印是小一些的马蹄形。一只兽脚类恐龙的三趾脚印从旁边斜穿而过。足迹记录的是恐龙活着时的一瞬间。' },
-  { kind: 'exhibit', id: 'archaeopteryx', age: 150, name: '始祖鸟', latin: 'Archaeopteryx',
+  // 后来插进来的展品（extra）：自己指定纵深，不占用下面 DEPTHS 的循环位置，后面各展品的纵深保持不变
+  { kind: 'exhibit', id: 'stegosaurus', age: 152, z: -880, extra: true, name: '剑龙', latin: 'Stegosaurus',
+    milestone: '侏罗纪的巨兽', desc: '背上两排交错的骨板、尾巴末端四根尖刺，是晚侏罗世莫里森组最有名的植食恐龙。这具骨架是丹佛自然与科学博物馆的展品。' },
+  // 剑龙插进来后始祖鸟往后挪了一站，原来的纵深正好落在两条河的交汇处，往远处挪到干地上
+  { kind: 'exhibit', id: 'archaeopteryx', age: 150, z: -1100, name: '始祖鸟', latin: 'Archaeopteryx',
     milestone: '鸟类起源', desc: '有羽毛和翅膀，也有牙齿和长长的尾骨，是恐龙与鸟之间的过渡。' },
   { kind: 'exhibit', id: 'archaefructus', age: 125, name: '辽宁古果', latin: 'Archaefructus liaoningensis',
     milestone: '开花植物出现', desc: '种子被心皮包裹，是已知最早的开花植物之一。' },
@@ -67,9 +71,12 @@ STATIONS.forEach((s, i) => {
 export const WALK_LENGTH = x;
 
 export const EXHIBITS = STATIONS.filter((s) => s.kind === 'exhibit');
+let slot = 0;
 EXHIBITS.forEach((e, i) => {
   e.index = i + 1;
-  e.z ??= DEPTHS[i % DEPTHS.length];   // 可在站点里单独指定纵深
+  const depth = DEPTHS[slot % DEPTHS.length];
+  if (!e.extra) slot++;
+  e.z ??= depth;   // 可在站点里单独指定纵深
 });
 
 export const EXTINCTIONS = STATIONS.filter((s) => s.kind === 'extinction');

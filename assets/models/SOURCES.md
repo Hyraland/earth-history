@@ -25,6 +25,7 @@ Courtesy of the Smithsonian Institution, National Museum of Natural History, Dep
 | `dunkleosteus.glb` | 邓氏鱼头骨（展出标本的扫描，作者未注明是否为复制品） | [Dunkleosteus](https://sketchfab.com/3d-models/dunkleosteus-58f39882a0ee4921baeb2c3057f46041) | MattMakesSwords - Scans |
 | `ichthyosaur.glb` | *Stenopterygius quadriscissus*，德国霍尔茨马登/奥姆登，早侏罗世，卡特县博物馆展品 | [CCM Ichthyosaur](https://sketchfab.com/3d-models/ccm-ichthyosaur-85fe3715565545669f184761d9dbdbf8) | Carter County Museum |
 | `cetotherium.glb` | *Cetotherium riabinini*，NMNH-P 668/1，乌克兰国家自然历史博物馆，组装骨架 | [Cetotherium riabinini assembled skeleton](https://sketchfab.com/3d-models/cetotherium-riabinini-assembled-skeleton-8532da04db044d9c8417fcec43053e3a) | SchmalhausenEvolMorph |
+| `stegosaurus.glb` | *Stegosaurus*，丹佛自然与科学博物馆展出骨架，Triebold Paleontology 用 Artec Space Spider 扫描；原模型没有颜色贴图，网页里按三角龙贴图的色调着色 | [Stegosaurus Skeleton](https://sketchfab.com/3d-models/stegosaurus-skeleton-dc6e1c748484449587b81426d41da6cb) | Artec 3D |
 | `lucy.glb` | 露西 AL 288-1（据标本照片建模，不是扫描） | ["Lucy" Australopithecus afarensis; AL 288-1](https://sketchfab.com/3d-models/lucy-australopithecus-afarensis-al-288-1-9f6c06b0a4e54890a87486e414b8cb0d) | JackalopeODDsENDs |
 
 许可证：https://creativecommons.org/licenses/by/4.0/
@@ -37,5 +38,6 @@ blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/ichthyo
 blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/cetotherium.glb --faces 220000 --tex 4096 --min-part 0.0003
 # 第二遍（在上一步的结果上）：删掉白色补建部件和支架杆
 blender -b -P tools/process_scan.py -- export assets/models/cetotherium.glb assets/models/cetotherium.glb --faces 999999 --tex 2048 --weld 1e-8 --min-part 0.002 --drop-material Hioid --cut-color "b > r + 0.04"
+blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/stegosaurus.glb --faces 260000 --min-part 0.0003
 blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/lucy.glb --faces 260000 --tex 2048 --min-part 0.0003
 ```

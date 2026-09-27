@@ -123,6 +123,10 @@ const motion = {
 const minScroll = -WALKER.x, maxScroll = WALK_LENGTH - WALKER.x;
 const jump = (walkerX) => { motion.jumpTo = walkerX - WALKER.x; motion.paused = false; };
 
+// 网址带 #展品id（例如 index.html#stegosaurus）时，直接停在这件展品前面
+const linked = EXHIBITS.find((e) => e.id === decodeURIComponent(location.hash.slice(1)));
+if (linked) Object.assign(motion, { scroll: linked.x - 330 - WALKER.x, paused: true });
+
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') { motion.paused = !motion.paused; motion.jumpTo = null; e.preventDefault(); }
   if (e.code === 'ArrowRight') { motion.right = true; motion.jumpTo = null; }
@@ -179,7 +183,7 @@ function adaptResolution(rawDt) {
 
 // ---- 主循环 ----
 const clock = new THREE.Clock();
-function frame() {
+function step() {
   const rawDt = clock.getDelta();
   const dt = Math.min(rawDt, 0.05);
   adaptResolution(rawDt);
@@ -214,6 +218,9 @@ function frame() {
   sky.mesh.position.copy(camera.position);
 
   composer.render();
+}
+function frame() {
+  step();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -226,4 +233,9 @@ window.addEventListener('resize', () => {
 });
 
 // 调试用
-window.__earth = { motion, jump, exhibits, camera, renderer, composer, scene, WALK_LENGTH, WALKER };
+// teleport：直接停在某个位置并手动渲染一帧——浏览器标签在后台、不跑动画帧时也能检查画面
+const teleport = (walkerX) => {
+  Object.assign(motion, { scroll: walkerX - WALKER.x, velocity: 0, jumpTo: null, paused: true });
+  step();
+};
+window.__earth = { motion, jump, teleport, step, exhibits, camera, renderer, composer, scene, WALK_LENGTH, WALKER };

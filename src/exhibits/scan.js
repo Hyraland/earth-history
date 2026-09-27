@@ -17,6 +17,7 @@ const loader = new GLTFLoader().setDRACOLoader(draco);
 // base：在模型下面垫一块展示底板（颜色），散落的小骨头才有衬底
 // delight：去掉照片扫描贴图里"拍摄时的光影"（0..1），让模型只受场景的阳光照明；roughness：覆盖粗糙度
 // bleach：把贴图颜色漂向米白色（0..1），保留明暗细节
+// mottle：没有颜色贴图时，用噪声在深、中、浅三种颜色之间调出化石骨骼的斑驳色（按模型自身坐标，跟着骨头走）
 // credit：署名（作者、原始页面、许可证）
 const CC0 = { license: 'CC0', licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/' };
 const BY4 = { license: 'CC BY 4.0', licenseUrl: 'https://creativecommons.org/licenses/by/4.0/', modified: true };
@@ -41,6 +42,14 @@ export const SCANS = {
   archaeopteryx: {
     file: 'archaeopteryx.glb', size: 330, orient: [-Math.PI / 2, 0, 0], yaw: 0, sink: 0.3,   // 石板的边与行走方向平行
     credit: { ...CC0, by: SI, title: 'Archaeopteryx siemensii Dames, USNM PAL509743', url: 'https://3d.si.edu/object/3d/archaeopteryx:391660da-7c49-499c-91f5-88a298686c09' },
+  },
+  // 剑龙：扫描没有颜色贴图，用 mottle 配出和三角龙贴图一致的深红褐色（颜色取自三角龙贴图的 10% / 50% / 90% 亮度分位，
+  // 再提亮约两成——三角龙的贴图里带着拍摄时的高光，看起来比这些平均值亮）；
+  // 侧面朝向镜头，头朝行走方向并略微转向镜头，两排骨板和尾刺的轮廓最清楚
+  stegosaurus: {
+    file: 'stegosaurus.glb', size: 620, yaw: Math.PI / 2 - 0.35,
+    mottle: { dark: '#381304', mid: '#703c1b', light: '#c08446' },
+    credit: { ...BY4, by: 'Artec 3D', title: 'Stegosaurus Skeleton（丹佛自然与科学博物馆展出骨架，Triebold Paleontology 扫描）', url: 'https://sketchfab.com/3d-models/stegosaurus-skeleton-dc6e1c748484449587b81426d41da6cb' },
   },
   triceratops: {
     // 绕身体长轴再转 -0.56：在直立（-0.3）的基础上，背部再朝远处转约 15°
@@ -89,6 +98,7 @@ export async function buildScan(exhibit, { renderer }) {
     if (cfg.brighten) m.color.multiplyScalar(cfg.brighten);
     if (cfg.roughness !== undefined) { m.roughness = cfg.roughness; m.roughnessMap = null; }
     if ((cfg.delight || cfg.bleach) && m.map) retouch(m, cfg);
+    if (cfg.mottle && !m.map) mottle(m, cfg.mottle);
     if (cfg.relief && m.normalMap) m.normalScale.multiplyScalar(cfg.relief);
     for (const t of [m.map, m.normalMap]) if (t) t.anisotropy = aniso;
   });
@@ -103,6 +113,8 @@ export async function buildScan(exhibit, { renderer }) {
   const center0 = box0.getCenter(new THREE.Vector3());
   model.position.sub(center0);                          // 以包围盒中心为原点
   oriented.scale.setScalar(cfg.size / Math.max(size0.x, size0.y, size0.z));
+  // 斑驳的尺度按模型大小换算：最长边上大约 40 块大斑
+  model.traverse((o) => { if (o.material?.userData.mottleFreq) o.material.userData.mottleFreq.value = 40 / Math.max(size0.x, size0.y, size0.z); });
   if (cfg.base) oriented.add(displayBase(box0, cfg.base));
   return { ...placeOnGround(oriented, cfg), credit: cfg.credit };
 }
@@ -128,6 +140,45 @@ function retouch(material, { delight = 0, bleach = 0 }) {
           rgb = mix(rgb, vec3(0.94, 0.87, 0.76) * detail, uBleach);
           diffuseColor *= vec4(rgb, texel.a);
         #endif`);
+  };
+  material.needsUpdate = true;
+}
+
+// 化石骨骼的斑驳色：两层噪声，大斑决定深浅，小斑加细碎的颗粒；在 mid 两侧往 dark / light 偏
+function mottle(material, { dark, mid, light }) {
+  const freq = { value: 1 };
+  material.userData.mottleFreq = freq;
+  material.color.set('#ffffff');
+  material.roughness = 0.75;
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uFreq = freq;
+    shader.uniforms.uDark = { value: new THREE.Color(dark) };
+    shader.uniforms.uMid = { value: new THREE.Color(mid) };
+    shader.uniforms.uLight = { value: new THREE.Color(light) };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vBone;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvBone = position;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', /* glsl */ `#include <common>
+        varying vec3 vBone;
+        uniform float uFreq;
+        uniform vec3 uDark, uMid, uLight;
+        float mh(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+        float mn(vec3 p) {
+          vec3 i = floor(p), f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(mix(mh(i), mh(i + vec3(1, 0, 0)), f.x), mix(mh(i + vec3(0, 1, 0)), mh(i + vec3(1, 1, 0)), f.x), f.y),
+                     mix(mix(mh(i + vec3(0, 0, 1)), mh(i + vec3(1, 0, 1)), f.x), mix(mh(i + vec3(0, 1, 1)), mh(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+        }`)
+      .replace('#include <color_fragment>', /* glsl */ `#include <color_fragment>
+        {
+          vec3 q = vBone * uFreq;
+          float big = mn(q) * 0.55 + mn(q * 2.3 + 7.0) * 0.3 + mn(q * 5.1 + 3.0) * 0.15;
+          float fine = mn(q * 23.0);
+          float t = clamp((big - 0.5) * 2.4 + (fine - 0.5) * 0.5, -1.0, 1.0);
+          vec3 c = t < 0.0 ? mix(uMid, uDark, -t) : mix(uMid, uLight, t);
+          diffuseColor.rgb *= c;
+        }`);
   };
   material.needsUpdate = true;
 }
