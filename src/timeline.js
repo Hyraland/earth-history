@@ -40,7 +40,7 @@ export const STATIONS = [
   { kind: 'exhibit', id: 'petrified', age: 220, z: -900, pad: 208, extra: true, name: '石化森林', latin: 'Agathoxylon arizonicum',
     milestone: '盘古大陆的森林', desc: '洪水冲倒的南洋杉类大树被埋进河沙和火山灰，木质被二氧化硅置换成玛瑙和碧玉。石化的树干很脆，断成一截一截；截面上是铁和锰染出的红、黄、紫色。这些树干来自美国亚利桑那州的石化森林国家公园。' },
   { kind: 'extinction', age: 201, name: '三叠纪末大灭绝', desc: '中大西洋岩浆省喷发。灾难之后，恐龙崛起为陆地霸主。' },
-  // 菊石放大后往远处挪（z: -1000），不挡小人的路
+  // 菊石放大后往远处挪（z: -1000）
   { kind: 'exhibit', id: 'ammonite', age: 195, z: -1000, name: '菊石', latin: 'Asteroceras obtusum',
     milestone: '中生代的海洋', desc: '侏罗纪早期的菊石，粗壮笔直的放射肋和腹部中央的棱脊是它的特征。菊石演化快、分布广，是地质学家划分地层的"时钟"。' },
   { kind: 'exhibit', id: 'ichthyosaur', age: 182, name: '狭翼鱼龙', latin: 'Stenopterygius quadriscissus',
@@ -61,7 +61,7 @@ export const STATIONS = [
   { kind: 'exhibit', id: 'cetotherium', age: 11, name: '鲸兽', latin: 'Cetotherium riabinini',
     milestone: '海洋里的哺乳动物', desc: '中新世的小型须鲸，靠鲸须滤食。鲸的祖先是陆地上的偶蹄类，大约 5000 万年前才回到海洋。这具骨架藏于乌克兰国家自然历史博物馆。' },
   { kind: 'exhibit', id: 'lucy', age: 3.2, name: '露西', latin: 'Australopithecus afarensis',
-    milestone: '直立行走', desc: '骨盆和腿骨显示她已能直立行走，而脑容量仍与黑猩猩相近。' },
+    milestone: '直立行走', desc: '1974 年在埃塞俄比亚阿法尔地区出土，保存了全身约四成的骨骼，是当时已知最完整的早期人族化石。发掘当晚营地里反复播放披头士的《Lucy in the Sky with Diamonds》，她因此得名"露西"。她身高只有约 1.1 米。骨盆和腿骨显示她已能直立行走，脑容量却仍与黑猩猩相近。原件藏于埃塞俄比亚国家博物馆。' },
   { kind: 'event', age: 2.58, name: '第四纪冰期', desc: '冰盖周期性地推进和消退，冰期与间冰期开始交替。' },
   { kind: 'exhibit', id: 'mammoth', age: 0.02, name: '猛犸象', latin: 'Mammuthus primigenius',
     milestone: '末次冰盛期', desc: '长毛象的象牙可达 4 米长。它们与冰期的人类（包括尼安德特人和我们智人）共同生活在寒冷的草原上。' },
@@ -123,7 +123,7 @@ const STATION_EN = {
   cetotherium: { name: 'Cetotherium', milestone: 'Mammals return to the sea',
     desc: 'A small baleen whale from the Miocene that strained its food through baleen plates. Whales descend from land-dwelling hoofed mammals that took to the water around 50 million years ago. Held at the National Museum of Natural History of Ukraine.' },
   lucy: { name: 'Lucy', milestone: 'Walking upright',
-    desc: 'Her pelvis and leg bones show that she walked upright, yet her brain was still roughly the size of a chimpanzee\'s.' },
+    desc: 'Unearthed in 1974 in the Afar region of Ethiopia, she preserves about 40% of her skeleton — at the time the most complete early human relative ever found. That night the Beatles\' "Lucy in the Sky with Diamonds" played over and over at the expedition camp, and gave her her name. She stood only about 1.1 metres tall. Her pelvis and leg bones show that she walked upright, yet her brain was still roughly the size of a chimpanzee\'s: our ancestors learned to walk long before their brains grew large. The original is kept at the National Museum of Ethiopia in Addis Ababa.' },
   2.58: { name: 'Quaternary ice ages', desc: 'Ice sheets begin to advance and retreat in rhythm, as glacial and interglacial periods take turns.' },
   mammoth: { name: 'Woolly mammoth', milestone: 'The Last Glacial Maximum',
     desc: 'Its tusks could grow four metres long. Mammoths roamed the frozen steppes alongside Ice Age humans — Neanderthals and our own species.' },
