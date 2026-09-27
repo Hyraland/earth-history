@@ -50,8 +50,8 @@ export const STATIONS = [
   // 后来插进来的展品（extra）：自己指定纵深，不占用下面 DEPTHS 的循环位置，后面各展品的纵深保持不变
   { kind: 'exhibit', id: 'stegosaurus', age: 152, z: -880, extra: true, name: '剑龙', latin: 'Stegosaurus',
     milestone: '侏罗纪的巨兽', desc: '背上两排交错的骨板、尾巴末端四根尖刺，是晚侏罗世莫里森组最有名的植食恐龙。这具骨架是丹佛自然与科学博物馆的展品。' },
-  // 始祖鸟放大到 1.8 倍，往近处挪（纵深 -800）
-  { kind: 'exhibit', id: 'archaeopteryx', age: 150, z: -800, name: '始祖鸟', latin: 'Archaeopteryx',
+  // 始祖鸟放大到 1.8 倍（纵深 -920）
+  { kind: 'exhibit', id: 'archaeopteryx', age: 150, z: -920, name: '始祖鸟', latin: 'Archaeopteryx',
     milestone: '鸟类起源', desc: '有羽毛和翅膀，也有牙齿和长长的尾骨，是恐龙与鸟之间的过渡。' },
   { kind: 'exhibit', id: 'archaefructus', age: 125, name: '辽宁古果', latin: 'Archaefructus liaoningensis',
     milestone: '开花植物出现', desc: '种子被心皮包裹，是已知最早的开花植物之一。' },

@@ -53,5 +53,5 @@ export function applyStaticText() {
   set('.lp-modes [data-mode=night]', 'Night');
   set('#lp-az-label', '<span id="lp-body-label">Sun</span> direction');
   set('#lp-el-label', 'Elevation');
-  set('.lp-foot', '0° points straight ahead, 180° is behind you · <a id="lp-reset" href="#" onclick="return false">Reset direction</a>');
+  set('.lp-foot', '0° points straight ahead into the distance · <a id="lp-reset" href="#" onclick="return false">Reset direction</a>');
 }

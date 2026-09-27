@@ -224,10 +224,14 @@ const DEG = Math.PI / 180;
 const LIGHT_MODES = {
   day:    { elevation: 24, color: new THREE.Color('#ffe6c4'), power: SUN_POWER, hemi: 0.5,  ground: new THREE.Color('#b08560'), env: 0.25, exposure: 1.0 },
   sunset: { elevation: 4,  color: new THREE.Color('#ff9a52'), power: 2.6,       hemi: 0.3,  ground: new THREE.Color('#7a4a32'), env: 0.3,  exposure: 1.05 },
-  night:  { elevation: 32, color: new THREE.Color('#a8bcff'), power: 0.34,      hemi: 0.12, ground: new THREE.Color('#1c1e28'), env: 0.2,  exposure: 1.3 },
+  night:  { elevation: 22, color: new THREE.Color('#a8bcff'), power: 0.34,      hemi: 0.12, ground: new THREE.Color('#1c1e28'), env: 0.2,  exposure: 1.3 },
 };
 const light = { mode: 'day', azimuth: 29, elevation: 24 };
 try { Object.assign(light, JSON.parse(localStorage.getItem('earth-light') || '{}')); } catch { /* 用默认值 */ }
+// 可调范围：方位左右各 39°（太阳始终在画面前方），高度 0°~25°；旧设置超出范围时收进来
+const AZ_MAX = 39, EL_MAX = 25;
+light.azimuth = THREE.MathUtils.clamp(light.azimuth, -AZ_MAX, AZ_MAX);
+light.elevation = THREE.MathUtils.clamp(light.elevation, 0, EL_MAX);
 const tod = { sunset: 0, night: 0, az: light.azimuth, el: light.elevation, power: SUN_POWER };
 if (light.mode !== 'day') tod[light.mode] = 1;
 const tmpColor = new THREE.Color();
