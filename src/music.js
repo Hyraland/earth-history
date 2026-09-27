@@ -15,6 +15,7 @@ const CHORDS = [
 ];
 const STARS = [74, 76, 78, 81, 83, 86, 88, 90, 93];   // D 大调五声音阶的高音区
 const CHORD_LEN = 14;          // 秒
+const PAD_LEVEL = 0.0036;      // 铺底每个音的音量：只是远远地垫着，主角是星星的铃声（原来 0.024，按要求降到 15%）
 const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
 function impulse(ctx, seconds, decay) {
@@ -109,7 +110,7 @@ export function createMusic() {
         o.type = type;
         o.frequency.value = hz(m);
         const g = ctx.createGain();
-        g.gain.value = 0.024 * (type === 'sine' ? 1.2 : 1) * (i === notes.length - 1 ? 0.7 : 1);   // 最高音轻一点
+        g.gain.value = PAD_LEVEL * (type === 'sine' ? 1.2 : 1) * (i === notes.length - 1 ? 0.7 : 1);   // 最高音轻一点
         o.connect(g).connect(out);
         o.start(t);
         o.stop(end);
