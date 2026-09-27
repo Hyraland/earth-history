@@ -2,3 +2,5 @@
 # 下载的原始模型压缩包（很大），处理后的 glb 在 assets/models/
 assets/incoming/
 assets/tmp/
+# Claude Code 的本地设置
+.claude/

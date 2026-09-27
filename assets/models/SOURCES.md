@@ -1,5 +1,11 @@
 # 模型来源
 
+> 本仓库的代码按根目录的 `LICENSE`（MIT）发布。**本目录中的 3D 模型不属于 MIT 许可**，各自沿用原始的许可证（CC0 或 CC BY 4.0），
+> 作者、出处和修改说明见下文。使用或再分发 CC BY 4.0 的模型时，需要保留下面的署名。
+>
+> The code in this repository is released under the MIT License (see `LICENSE`). **The 3D models in this folder are not covered by the MIT License**;
+> each keeps its original licence (CC0 or CC BY 4.0), with authors, sources and modifications listed below. CC BY 4.0 models require attribution when reused.
+
 ## 史密森尼学会（CC0）
 
 以下扫描模型来自史密森尼学会 3D 数字化项目（Smithsonian 3D Digitization），均为 **CC0**（公有领域）。
