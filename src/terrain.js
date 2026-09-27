@@ -164,6 +164,46 @@ Era eraAt(float x) {
   return e;
 }
 
+// 野花：把地面分成旋转过的小格，每格里随机撒一朵（位置、大小、颜色都随机），看不出网格。
+// cover 是这里有花的概率（花丛分布），返回花的覆盖程度（0..1）和颜色
+vec3 fl_hash3(vec2 p) {
+  vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+  q += dot(q, q.yxz + 33.33);
+  return fract((q.xxy + q.yzz) * q.zyx);
+}
+vec3 flowerColor(float hue) {
+  return hue < 0.46 ? vec3(0.9, 0.58, 0.04)          // 黄：毛茛、蒲公英
+       : hue < 0.6 ? vec3(0.86, 0.86, 0.8)           // 白：雏菊
+       : hue < 0.72 ? vec3(0.36, 0.16, 0.6)          // 紫：羽扇豆、风铃草
+       : vec3(0.7, 0.06, 0.03);                      // 红：虞美人（少一些）
+}
+float wildflowers(vec2 w, float cover, float hueField, out vec3 color) {
+  const mat2 R = mat2(0.8, -0.6, 0.6, 0.8);                 // 旋转约 37°，格子不和行走方向对齐
+  vec2 p = R * w / 3.2;                                     // 每格约 3 个单位
+  vec2 cell = floor(p), f = fract(p);
+  float best = 0.0;
+  color = flowerColor(hueField);                            // 远处取这一丛的主色
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      vec2 c = cell + vec2(i, j);
+      vec3 r = fl_hash3(c);
+      if (r.z > cover) continue;                            // 这一格没有花
+      vec2 d = vec2(i, j) + r.xy - f;
+      float rad = 0.22 + 0.2 * fract(r.z * 7.13);
+      float px = fwidth(p.x) + 1e-4;                        // 一个像素相当于多少格：远处边缘放软，避免闪烁
+      float a = 1.0 - smoothstep(rad - px, rad + px, length(d));
+      if (a > best) {
+        best = a;
+        float hue = hueField + (fract(r.z * 13.7) - 0.5) * 0.22;   // 一丛花的颜色相近，偶尔夹着别的颜色
+        color = flowerColor(hue) * (0.8 + 0.4 * fract(r.x * 31.7));
+      }
+    }
+  }
+  // 远处一个像素里有好几朵花：用平均覆盖率代替，免得花点闪烁
+  float far = smoothstep(0.35, 1.2, fwidth(p.x));
+  return mix(best, cover * 0.33, far);
+}
+
 // wetness 输出水面比例，用于加强反光
 void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, out vec3 emi, out float wetness) {
   float veg = e.p1.x, tree = e.p1.y, water = e.p1.z, lava = e.p1.w;
@@ -245,16 +285,16 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
   float flowers = e.p3.x, blossom = e.p3.y;
   if (flowers + blossom > 0.001) {
     vec4 d3 = texture2D(uDet, w / 37.0 + vec2(0.21, 0.83));
-    // 花丛：一团团的，中间留着绿草；花丛里是细碎的花点，不是铺满的一片
-    float drift = smoothstep(0.64 - 0.26 * flowers, 0.76 - 0.22 * flowers, texture2D(uDet, w / 520.0 + vec2(0.6, 0.1)).r + 0.2 * meso);
-    float speck = smoothstep(0.45, 0.68, d3.r) * smoothstep(0.2, 0.5, texture2D(uDet, w / 9.0 + vec2(0.4, 0.2)).r);
-    float fl = min(1.0, flowers * 1.2) * grassCover * (1.0 - treeCover * tree) * drift * speck;
-    float hue = texture2D(uDet, w / 1500.0 + vec2(0.33, 0.77)).r + (d3.a - 0.5) * 0.18;
-    vec3 fc = hue < 0.46 ? vec3(0.9, 0.58, 0.04)          // 黄：毛茛、蒲公英
-            : hue < 0.6 ? vec3(0.86, 0.86, 0.8)           // 白：雏菊
-            : hue < 0.72 ? vec3(0.36, 0.16, 0.6)          // 紫：羽扇豆、风铃草
-            : vec3(0.7, 0.06, 0.03);                      // 红：虞美人（少一些）
-    col = mix(col, fc * (0.85 + 0.35 * d3.g), fl * 0.95);
+    // 花丛的分布：三层不同方向、不同尺度的噪声叠起来，形状不规则，没有方向感；中间留着绿草
+    vec2 q1 = mat2(0.6, 0.8, -0.8, 0.6) * w;
+    float clump = texture2D(uDet, q1 / 610.0 + vec2(0.6, 0.1)).r * 0.55
+                + texture2D(uDet, w / 233.0 + vec2(0.13, 0.47)).r * 0.3
+                + texture2D(uDet, mat2(0.9, -0.44, 0.44, 0.9) * w / 71.0).r * 0.15;
+    float cover = smoothstep(0.6 - 0.2 * flowers, 0.72 - 0.16 * flowers, clump + 0.12 * meso) * min(1.0, flowers * 1.1);
+    float hueField = texture2D(uDet, q1 / 1700.0 + vec2(0.33, 0.77)).r;
+    vec3 fc;
+    float fl = wildflowers(w, cover, hueField, fc) * grassCover * (1.0 - treeCover * tree);
+    col = mix(col, fc, fl * 0.95);
     float bl = blossom * treeCover * tree * smoothstep(0.55, 0.8, d3.b) * step(0.5, fract(d1.a * 13.7));
     col = mix(col, mix(vec3(0.88, 0.5, 0.6), vec3(0.9, 0.88, 0.84), step(0.5, fract(d1.a * 5.1))), bl * 0.75);   // 木兰一类：粉、白
   }
@@ -266,17 +306,20 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
   col = mix(col, e.b * 1.12, chan * 0.8);
   // 雨区：河道涨满水，低洼处积起水坑，其余地面被淋湿变深
   float rainW = 1.0 - smoothstep(uRainR * 0.5, uRainR * 1.3, abs(w.x - uRainX));
-  // 河道中间是连续的水面，只在河岸边缘渐变——否则河道会变成"半湿的砾石"，和相连的水塘反光不一样
-  // 有没有水只取决于年代够不够湿润，是个开关，不能"六成是水"——否则河道会比相连的水塘浅、像蒙了一层雾
-  float flowing = max(smoothstep(0.08, 0.12, water + veg * 0.3), step(0.02, rainW));
-  float chanWater = smoothstep(0.3, 0.6, chan) * flowing * (1.0 - lava);
+  // 河道里的水从河心往外涨：阈值越低，水越宽。湿润的年代河道本身有水；下雨时阈值随雨量平滑降低，
+  // 雨区边缘只有河心一细线水，越往雨区中心越宽，还会漫上两岸的河漫滩——不会在地上切出一条直线。
+  // 同一个地方要么是水、要么不是（阈值附近只有很窄的过渡），不会"六成是水"而比相连的水塘浅
+  float wetEra = smoothstep(0.08, 0.12, water + veg * 0.3);
+  float fillLevel = min(mix(1.08, 0.3, wetEra), mix(1.08, 0.42, rainW));
+  float floodable = max(chan, bank * 0.95 * smoothstep(0.3, 1.0, rainW));
+  float chanWater = smoothstep(fillLevel, fillLevel + 0.08, floodable) * (1.0 - lava);
 
-  // 水：浅海、潮坪、沼泽
-  float wl = mix(0.8, 0.4, water) - rainW * 0.08;
+  // 水：浅海、潮坪、沼泽；下雨时水位线随雨量平滑上升，积起越来越大的水潭
+  float wlEra = mix(9.0, mix(0.8, 0.4, water), step(0.001, water));
+  float wl = min(wlEra, mix(1.05, 0.68, rainW));
   float wn = m1.g * 0.8 + meso * 0.2;
-  float hasWater = max(step(0.001, water), step(0.02, rainW));
-  float wet = smoothstep(wl - 0.05, wl, wn) * hasWater;
-  float wm = smoothstep(wl, wl + 0.012, wn) * hasWater;
+  float wet = smoothstep(wl - 0.05, wl, wn);
+  float wm = smoothstep(wl, wl + 0.012, wn);
   col = mix(col, col * 0.62, wet * (1.0 - wm));
   wetness = max(wm, chanWater);
   // 水面：颜色偏深，让天空和太阳的反光显出来；细碎的波纹制造闪光

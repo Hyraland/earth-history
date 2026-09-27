@@ -41,7 +41,7 @@ export const SCANS = {
     credit: { ...BY4, by: 'Carter County Museum', title: 'CCM Ichthyosaur', url: 'https://sketchfab.com/3d-models/ccm-ichthyosaur-85fe3715565545669f184761d9dbdbf8' },
   },
   archaeopteryx: {
-    file: 'archaeopteryx.glb', size: 330, orient: [-Math.PI / 2, 0, 0], yaw: 0, sink: 0.3,   // 石板的边与行走方向平行
+    file: 'archaeopteryx.glb', size: 594, orient: [-Math.PI / 2, 0, 0], yaw: 0, sink: 0.3,   // 石板的边与行走方向平行
     credit: { ...CC0, by: SI, title: 'Archaeopteryx siemensii Dames, USNM PAL509743', url: 'https://3d.si.edu/object/3d/archaeopteryx:391660da-7c49-499c-91f5-88a298686c09' },
   },
   // 剑龙：扫描没有颜色贴图，用 mottle 配出和三角龙贴图一致的深红褐色（颜色取自三角龙贴图的 10% / 50% / 90% 亮度分位，

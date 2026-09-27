@@ -1,4 +1,4 @@
-// 中英文切换。语言存在浏览器里；第一次打开时，中文系统的浏览器用中文，其他用英文。
+// 中英文切换。默认中文；切换后的选择存在浏览器里。
 // 切换时记下当前走到的位置，重新载入页面，再回到这里——比逐个刷新界面上的文字简单可靠。
 // 站点（展品、事件）的英文在 timeline.js 的 STATION_EN 里；其余界面文字在这里。
 
@@ -6,8 +6,8 @@ export const LANG = (() => {
   try {
     const saved = localStorage.getItem('earth-lang');
     if (saved === 'zh' || saved === 'en') return saved;
-  } catch { /* 没有存储就按浏览器语言 */ }
-  return /^zh\b/i.test(navigator.language || '') ? 'zh' : 'en';
+  } catch { /* 没有存储就用中文 */ }
+  return 'zh';
 })();
 export const EN = LANG === 'en';
 export const t = (zh, en) => (EN ? en : zh);
