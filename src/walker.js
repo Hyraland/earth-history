@@ -26,6 +26,8 @@ uniform float uLick;    // 抬爪舔毛
 uniform float uTime;
 uniform float uCam;     // 镜头在小猫的哪一侧：+1 = 模型的 +z 一侧，-1 = -z 一侧
 uniform float uGazeUp;  // 抬头望天（结尾看星空时）
+uniform vec3 uTailRoot; // 尾根（尾巴插进臀部的地方）
+attribute vec2 aTail;   // x：是不是尾巴（0/1）；y：沿尾巴的位置（0 尾根 → 1 尾尖）。载入时从网格上算出来
 
 vec2 rot(vec2 v, float a) { float c = cos(a), s = sin(a); return vec2(c * v.x - s * v.y, s * v.x + c * v.y); }
 
@@ -34,14 +36,14 @@ void catDeform(vec3 p, out vec3 q, inout vec3 n) {
   float front = step(0.03, p.x);
   float near = step(0.0, p.z);
   float camSide = step(0.0, p.z * uCam);
-  float isLeg = step(-0.33, p.x) * step(p.x, 0.46) * smoothstep(0.34, 0.22, p.y) * (1.0 - step(0.33, p.x) * step(0.36, p.y));
+  float isLeg = step(-0.33, p.x) * step(p.x, 0.46) * smoothstep(0.34, 0.22, p.y) * (1.0 - step(0.33, p.x) * step(0.36, p.y)) * (1.0 - aTail.x);
   float frontLeg = isLeg * front, hindLeg = isLeg * (1.0 - front);
 
   // ---- 尾巴：以尾根为轴。走的时候竖起来（越靠尾尖转得越多，弯成问号），跑的时候向后伸平；
   //      坐下时贴着地面绕到镜头一侧 ----
-  vec3 tb = vec3(-0.33, 0.40, 0.0);
-  float tt = clamp((-0.30 - p.x) / 0.2, 0.0, 1.0);
-  float tw = smoothstep(-0.30, -0.36, p.x) * step(0.12, p.y);
+  vec3 tb = uTailRoot;
+  float tt = aTail.y;
+  float tw = aTail.x;
   float up = mix(-2.5, -1.3, uRun) * (1.0 - uSit) * tw * (0.75 + 0.25 * tt);
   vec2 tv = rot(q.xy - tb.xy, up);
   q.xy = tb.xy + tv;
@@ -117,6 +119,60 @@ function injectDeform(material, uniforms, withNormals) {
 
 const approach = (v, target, rate, dt) => v + (target - v) * Math.min(1, dt * rate);
 
+// 找出尾巴：从尾尖（x 最小的点）出发，沿网格表面量每个顶点离尾尖多远。尾巴长约 0.34（模型单位），
+// 腿要绕过臀部，最近也在 0.6 以外——所以按这个距离划分：0.30 以内是尾巴，0.30~0.38 渐变到臀部，不会误伤腿。
+// 距离同时给出沿尾巴的位置（0 尾根 → 1 尾尖）。UV 接缝处顶点是拆开的，先按位置合并再连边。
+const TAIL_LEN = 0.34;
+function markTail(geometry) {
+  const p = geometry.attributes.position, idx = geometry.index.array, n = p.count;
+  const rep = new Int32Array(n), seen = new Map();
+  for (let i = 0; i < n; i++) {
+    const k = `${Math.round(p.getX(i) * 1e4)},${Math.round(p.getY(i) * 1e4)},${Math.round(p.getZ(i) * 1e4)}`;
+    if (!seen.has(k)) seen.set(k, i);
+    rep[i] = seen.get(k);
+  }
+  const adj = new Map();
+  const link = (a, b) => {
+    const w = Math.hypot(p.getX(a) - p.getX(b), p.getY(a) - p.getY(b), p.getZ(a) - p.getZ(b));
+    (adj.get(a) ?? adj.set(a, []).get(a)).push(b, w);
+  };
+  for (let t = 0; t < idx.length; t += 3) {
+    const a = rep[idx[t]], b = rep[idx[t + 1]], c = rep[idx[t + 2]];
+    link(a, b); link(b, a); link(b, c); link(c, b); link(a, c); link(c, a);
+  }
+  let tip = 0;
+  for (let i = 1; i < n; i++) if (p.getX(i) < p.getX(tip)) tip = i;
+  tip = rep[tip];
+  // 沿表面的最短距离；超过 0.5 的不再往外走（只关心尾巴附近）
+  const dist = new Float32Array(n).fill(Infinity), inQueue = new Uint8Array(n);
+  dist[tip] = 0;
+  const queue = [tip];
+  for (let head = 0; head < queue.length; head++) {
+    const u = queue[head];
+    inQueue[u] = 0;
+    const e = adj.get(u) ?? [];
+    for (let k = 0; k < e.length; k += 2) {
+      const v = e[k], d = dist[u] + e[k + 1];
+      if (d < dist[v] - 1e-7 && d < 0.5) {
+        dist[v] = d;
+        if (!inQueue[v]) { inQueue[v] = 1; queue.push(v); }
+      }
+    }
+  }
+  const attr = new Float32Array(n * 2);
+  const root = new THREE.Vector3();
+  let rootN = 0;
+  for (let i = 0; i < n; i++) {
+    const d = dist[rep[i]];
+    if (d === Infinity) continue;
+    attr[i * 2] = 1 - THREE.MathUtils.smoothstep(d, 0.3, 0.38);
+    attr[i * 2 + 1] = Math.max(0, 1 - d / TAIL_LEN);
+    if (d > 0.3 && d < TAIL_LEN) { root.x += p.getX(i); root.y += p.getY(i); root.z += p.getZ(i); rootN++; }
+  }
+  geometry.setAttribute('aTail', new THREE.BufferAttribute(attr, 2));
+  return rootN ? root.multiplyScalar(1 / rootN) : new THREE.Vector3(-0.32, 0.4, 0.02);
+}
+
 export function createWalker() {
   const root = new THREE.Group();      // 放在地面上
   const body = new THREE.Group();      // 朝向
@@ -124,6 +180,7 @@ export function createWalker() {
   const uniforms = {
     uPhase: { value: 0 }, uWalk: { value: 0 }, uRun: { value: 0 }, uSit: { value: 0 },
     uLook: { value: 0 }, uLick: { value: 0 }, uTime: { value: 0 }, uCam: { value: 1 }, uGazeUp: { value: 0 },
+    uTailRoot: { value: new THREE.Vector3(-0.32, 0.4, 0.02) },
   };
 
   const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/gltf/');
@@ -132,6 +189,7 @@ export function createWalker() {
     cat.scale.setScalar(SIZE);
     cat.traverse((o) => {
       if (!o.isMesh) return;
+      uniforms.uTailRoot.value.copy(markTail(o.geometry));
       o.castShadow = true;
       o.frustumCulled = false;          // 变形后包围盒会变，干脆不裁剪
       o.material.roughness = 0.9;
