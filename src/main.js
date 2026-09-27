@@ -306,19 +306,9 @@ document.getElementById('lang-toggle').addEventListener('click', (e) => { e.stop
 // 同一次浏览里看过之后不再自动播放，菜单里出现"重播结尾"。往回走一段后，恢复观众原来选的光照。
 const END_X = WALK_LENGTH;
 const ENDING_LINES = t([
-  '你走到了今天。',
-  '四十六亿年里，这颗星球冷却、下雨、冰封，又开满了花。',
-  '五次大灭绝之后，生命每一次都重新开始。',
-  '如果把这四十六亿年压缩成一天，智人出现在午夜前的最后六秒。',
-  '我们身体里的碳、氧和铁，都诞生在比太阳更古老的恒星里。',
-  '谢谢你走完这段路。',
+  '谢谢你，走过了这么漫长的路',
 ], [
-  'And here you are: today.',
-  'Over 4.6 billion years, this planet cooled, rained, froze over, and burst into flower.',
-  'Five times, mass extinction brought life to the brink, and five times it began again.',
-  'If Earth\'s 4.6 billion years were a single day, our species would appear in the last six seconds before midnight.',
-  'The carbon, oxygen and iron in our bodies were forged in stars older than the Sun.',
-  'Thank you for walking all this way.',
+  'Thank you for walking such a long way.',
 ]);
 const ending = { state: 'idle', t: 0, lift: 0, saved: null, pending: false, seen: false };
 const endingEl = document.getElementById('ending');
@@ -369,8 +359,9 @@ function updateEnding(dt, walkerX) {
   }
   if (ending.state === 'playing') {
     ending.t += dt;
-    [...endingLines.children].forEach((p, i) => p.classList.toggle('on', ending.t > 5 + i * 3.6));
-    if (ending.t > 5 + ENDING_LINES.length * 3.6 + 4) finishEnding();
+    // 镜头抬到星空大约要 8 秒：等它抬起来再出现文字；至少停留 22 秒，让人在星空下待一会儿
+    [...endingLines.children].forEach((p, i) => p.classList.toggle('on', ending.t > 7 + i * 3.6));
+    if (ending.t > Math.max(22, 7 + ENDING_LINES.length * 3.6 + 6)) finishEnding();
   }
   if (ending.state === 'done' && walkerX < END_X - 700) leaveEnding();
   // 镜头：抬头望向银河（从俯视 -0.36 抬到仰视 0.26），播完再慢慢低头
