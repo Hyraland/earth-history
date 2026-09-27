@@ -305,36 +305,74 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
   col = mix(col, mix(col, e.v * 0.9, 0.55), bank * veg * (1.0 - chan));
   col = mix(col, e.b * 1.12, chan * 0.8);
 
-  // 麦田：美索不达米亚的灌溉农田。一条条细长的田块（旋转过，不和行走方向对齐，相邻两列错开），
-  // 田块之间是田埂，每隔几列有一条灌溉渠；成熟的大麦金黄，有的还青，有的已收割或休耕；熟麦里夹着红色的虞美人
-  float fields = e.p3.z, canal = 0.0, farm = 0.0;
+  // 农田：散落在开花的原野里（古代约两成，现代约三成的地面），靠近河的地方多一些。
+  // 古代（modern = 0）：美索不达米亚的灌溉大麦田——一条条细长的田块斜着排、相邻两列错开，田埂分隔，
+  //   每隔几列一条灌溉渠；熟大麦金黄，有的还青、有的是麦茬或休耕；熟麦里夹着红色的虞美人。
+  // 现代（modern = 1）：大块方田，笔直的道路和田边的树篱；中心枢轴喷灌的绿色圆田；
+  //   金黄的麦田、亮黄的油菜花、翠绿的玉米大豆、翻耕过的褐土，田里有拖拉机的平行车辙。
+  float fields = e.p3.z, modern = e.p3.w, canal = 0.0, farm = 0.0;
   if (fields > 0.001) {
-    const mat2 FR = mat2(0.93, 0.37, -0.37, 0.93);
-    vec2 fp = FR * w;
-    const float FW = 38.0, FL = 170.0;                                   // 田块宽、长
-    float colId = floor(fp.x / FW);
-    float stagger = 0.5 * mod(colId, 2.0);
-    vec2 fcell = vec2(colId, floor(fp.y / FL + stagger));
-    vec2 fl2 = vec2(fract(fp.x / FW), fract(fp.y / FL + stagger));
-    vec3 fh = fl_hash3(fcell + 17.0);
-    farm = fields * smoothstep(0.4, 0.52, texture2D(uMac2, w / 4096.0 + vec2(0.21, 0.63)).r + 0.2 * fields) * (1.0 - chan);   // 留出一些野花草地
-    float dEdge = min(min(fl2.x, 1.0 - fl2.x) * FW, min(fl2.y, 1.0 - fl2.y) * FL);   // 到田块边缘的距离（世界单位）
-    float aa = fwidth(fp.x) + 0.2;
-    float dike = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, dEdge);
-    canal = (1.0 - smoothstep(2.2 - aa, 2.2 + aa, fl2.x * FW)) * step(mod(colId, 4.0), 0.5) * farm;
-    vec3 crop = fh.x < 0.55 ? mix(vec3(0.6, 0.42, 0.12), vec3(0.74, 0.56, 0.2), fh.y)   // 熟透的大麦
-              : fh.x < 0.75 ? vec3(0.2, 0.32, 0.07)                                     // 还青着
-              : fh.x < 0.88 ? vec3(0.52, 0.44, 0.28)                                    // 收割后的麦茬
-              : vec3(0.32, 0.23, 0.14);                                                 // 休耕的土
-    float rows = 0.5 + 0.5 * sin(fp.x * 5.2);                                           // 顺着田块的一垄垄
-    crop *= 1.0 - 0.14 * rows * (1.0 - smoothstep(0.08, 0.25, fwidth(fp.x * 0.83)));   // 麦垄太细（一个像素里超过约 1/8 条）就淡掉，免得出摩尔纹
-    crop *= 0.88 + 0.24 * texture2D(uDet, w / 61.0 + fh.xy).r;                          // 风吹过的明暗
-    vec3 poppy;
-    float pp = wildflowers(w * 1.6 + 7.0, 0.16, 0.95, poppy) * step(fh.x, 0.55);
-    crop = mix(crop, poppy, pp * 0.9);
-    col = mix(col, mix(crop, vec3(0.38, 0.3, 0.19), dike * 0.8), farm);
-    h = mix(h, rows * 0.3 * step(fh.x, 0.75) * (1.0 - smoothstep(0.08, 0.25, fwidth(fp.x * 0.83))) + dike * 0.6, farm);
-    rough = mix(rough, 0.9, farm);
+    float patchN = texture2D(uMac2, w / 4096.0 + vec2(0.21, 0.63)).r * 0.65 + texture2D(uDet, w / 1300.0 + vec2(0.7, 0.2)).r * 0.35;
+    float lo = mix(0.6, 0.56, modern);
+    farm = fields * smoothstep(lo, lo + 0.05, patchN + 0.08 * bank) * (1.0 - chan);
+    if (farm > 0.001) {
+      // ---- 古代的条田 ----
+      const mat2 FR = mat2(0.93, 0.37, -0.37, 0.93);
+      vec2 fp = FR * w;
+      const float FW = 38.0, FL = 170.0;
+      float colId = floor(fp.x / FW);
+      float stagger = 0.5 * mod(colId, 2.0);
+      vec2 fl2 = vec2(fract(fp.x / FW), fract(fp.y / FL + stagger));
+      vec3 fh = fl_hash3(vec2(colId, floor(fp.y / FL + stagger)) + 17.0);
+      float aa = fwidth(fp.x) + 0.2;
+      float dike = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, min(min(fl2.x, 1.0 - fl2.x) * FW, min(fl2.y, 1.0 - fl2.y) * FL));
+      canal = (1.0 - smoothstep(2.2 - aa, 2.2 + aa, fl2.x * FW)) * step(mod(colId, 4.0), 0.5) * farm * (1.0 - modern);
+      vec3 crop = fh.x < 0.55 ? mix(vec3(0.6, 0.42, 0.12), vec3(0.74, 0.56, 0.2), fh.y)   // 熟透的大麦
+                : fh.x < 0.75 ? vec3(0.2, 0.32, 0.07)                                     // 还青着
+                : fh.x < 0.88 ? vec3(0.52, 0.44, 0.28)                                    // 麦茬
+                : vec3(0.32, 0.23, 0.14);                                                 // 休耕
+      float rowFade = 1.0 - smoothstep(0.08, 0.25, fwidth(fp.x * 0.83));                  // 太细就淡掉，免得出摩尔纹
+      float rows = (0.5 + 0.5 * sin(fp.x * 5.2)) * rowFade;
+      crop *= (1.0 - 0.14 * rows) * (0.88 + 0.24 * texture2D(uDet, w / 61.0 + fh.xy).r);
+      vec3 poppy;
+      crop = mix(crop, poppy, wildflowers(w * 1.6 + 7.0, 0.16, 0.95, poppy) * step(fh.x, 0.55) * 0.9);
+      vec3 ancient = mix(crop, vec3(0.38, 0.3, 0.19), dike * 0.8);
+      float ancientH = rows * 0.3 * step(fh.x, 0.75) + dike * 0.6;
+
+      // ---- 现代的方田 ----
+      const mat2 MR = mat2(0.99, 0.12, -0.12, 0.99);
+      vec2 mp = MR * w;
+      const float MS = 180.0;
+      vec2 mcell = floor(mp / MS), mf = fract(mp / MS);
+      vec3 mh = fl_hash3(mcell + 91.0);
+      float aaM = fwidth(mp.x) + 0.2;
+      float dM = min(min(mf.x, 1.0 - mf.x), min(mf.y, 1.0 - mf.y)) * MS;
+      float hedge = 1.0 - smoothstep(1.6 - aaM, 1.6 + aaM, dM);
+      float road = max((1.0 - smoothstep(2.4 - aaM, 2.4 + aaM, mf.x * MS)) * step(mod(mcell.x, 3.0), 0.5),
+                       (1.0 - smoothstep(2.4 - aaM, 2.4 + aaM, mf.y * MS)) * step(mod(mcell.y, 4.0), 0.5));
+      vec3 mc = mh.x < 0.3 ? vec3(0.1, 0.28, 0.04)             // 玉米、大豆
+              : mh.x < 0.5 ? vec3(0.72, 0.55, 0.17)            // 小麦
+              : mh.x < 0.62 ? vec3(0.9, 0.74, 0.02)            // 油菜花
+              : mh.x < 0.8 ? vec3(0.27, 0.18, 0.1)             // 翻耕过的土
+              : vec3(0.26, 0.38, 0.1);                         // 牧草
+      // 拖拉机车辙：顺着田块方向（每块田随机横竖）的平行细线
+      float along = mh.y < 0.5 ? mp.x : mp.y;
+      float tram = (1.0 - smoothstep(0.3, 0.9, abs(fract(along / 18.0) - 0.5) * 18.0)) * (1.0 - smoothstep(0.05, 0.2, fwidth(along / 18.0)));
+      mc *= 1.0 - 0.18 * tram;
+      mc *= 0.9 + 0.2 * texture2D(uDet, w / 97.0 + mh.xy).r;
+      // 中心枢轴喷灌：方田里一个大圆，圆里是浇过水的绿色，圆外四角是干的
+      float r = length(mf - 0.5) * MS;
+      float isPivot = step(0.55, mh.z);
+      float circ = (1.0 - smoothstep(84.0 - aaM, 84.0 + aaM, r)) * isPivot;
+      mc = mix(mc, mix(vec3(0.08, 0.3, 0.04), vec3(0.62, 0.52, 0.3), isPivot * (1.0 - circ)), isPivot);
+      vec3 modernCol = mix(mc, vec3(0.1, 0.16, 0.06), hedge * 0.75);
+      modernCol = mix(modernCol, vec3(0.5, 0.48, 0.45), road);
+      float modernH = hedge * 1.2 + tram * 0.2;
+
+      col = mix(col, mix(ancient, modernCol, modern), farm);
+      h = mix(h, mix(ancientH, modernH, modern), farm);
+      rough = mix(rough, 0.9, farm);
+    }
   }
   // 雨区：河道涨满水，低洼处积起水坑，其余地面被淋湿变深
   float rainW = 1.0 - smoothstep(uRainR * 0.5, uRainR * 1.3, abs(w.x - uRainX));
