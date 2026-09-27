@@ -1,8 +1,11 @@
-// 中英文切换。默认中文；切换后的选择存在浏览器里。
-// 切换时记下当前走到的位置，重新载入页面，再回到这里——比逐个刷新界面上的文字简单可靠。
+// 中英文切换。语言按这个顺序决定：网址里的 ?lang=en / ?lang=zh（分享链接用，也可以用 /en/ 这个短链接）
+// → 浏览器里记住的选择 → 默认中文。
+// 切换时记下当前走到的位置，改网址里的语言参数重新载入，再回到这里——比逐个刷新界面上的文字简单可靠。
 // 站点（展品、事件）的英文在 timeline.js 的 STATION_EN 里；其余界面文字在这里。
 
 export const LANG = (() => {
+  const fromUrl = new URLSearchParams(location.search).get('lang');
+  if (fromUrl === 'zh' || fromUrl === 'en') return fromUrl;
   try {
     const saved = localStorage.getItem('earth-lang');
     if (saved === 'zh' || saved === 'en') return saved;
@@ -18,7 +21,9 @@ export function switchLanguage(motion) {
     localStorage.setItem('earth-lang', EN ? 'zh' : 'en');
     sessionStorage.setItem('earth-resume', JSON.stringify({ scroll: motion.scroll, paused: motion.paused }));
   } catch { /* 忽略 */ }
-  location.reload();
+  const url = new URL(location.href);
+  url.searchParams.set('lang', EN ? 'zh' : 'en');   // 网址也跟着换，复制下来就是这个语言的分享链接
+  location.replace(url.href);
 }
 // 重新载入后回到原来的位置
 export function takeResume() {

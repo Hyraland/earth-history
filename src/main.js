@@ -314,7 +314,7 @@ const END_X = WALK_LENGTH;
 const ENDING_LINES = t([
   '谢谢你，走过了这么漫长的路',
 ], [
-  'Thank you for walking such a long way.',
+  'Thank you for walking all this way.',
 ]);
 const ending = { state: 'idle', t: 0, lift: 0, saved: null, pending: false, seen: false };
 const endingEl = document.getElementById('ending');
