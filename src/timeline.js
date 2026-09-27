@@ -48,11 +48,11 @@ export const STATIONS = [
   { kind: 'exhibit', id: 'trackway', age: 155, name: '蜥脚类足迹', latin: 'Parabrontopodus',
     milestone: '恐龙称霸陆地', desc: '一只巨大的蜥脚类恐龙走过潮湿的泥滩：后脚印像一个大圆盆，前脚印是小一些的马蹄形。一只兽脚类恐龙的三趾脚印从旁边斜穿而过。足迹记录的是恐龙活着时的一瞬间。' },
   // 后来插进来的展品（extra）：自己指定纵深，不占用下面 DEPTHS 的循环位置，后面各展品的纵深保持不变
-  { kind: 'exhibit', id: 'stegosaurus', age: 152, z: -880, extra: true, name: '剑龙', latin: 'Stegosaurus',
+  { kind: 'exhibit', id: 'stegosaurus', age: 152, z: -770, extra: true, name: '剑龙', latin: 'Stegosaurus',
     milestone: '侏罗纪的巨兽', desc: '背上两排交错的骨板、尾巴末端四根尖刺，是晚侏罗世莫里森组最有名的植食恐龙。这具骨架是丹佛自然与科学博物馆的展品。' },
   // 始祖鸟放大到 1.8 倍（纵深 -920）
   { kind: 'exhibit', id: 'archaeopteryx', age: 150, z: -920, name: '始祖鸟', latin: 'Archaeopteryx',
-    milestone: '鸟类起源', desc: '有羽毛和翅膀，也有牙齿和长长的尾骨，是恐龙与鸟之间的过渡。' },
+    milestone: '鸟类起源', desc: '有羽毛和翅膀，也有牙齿、爪子和长长的骨质尾巴。鸟类其实就是恐龙——兽脚类恐龙中活到今天的那一支；始祖鸟让我们看到恐龙正在变成鸟的样子。' },
   { kind: 'exhibit', id: 'archaefructus', age: 125, name: '辽宁古果', latin: 'Archaefructus liaoningensis',
     milestone: '开花植物出现', desc: '种子被心皮包裹，是已知最早的开花植物之一。' },
   { kind: 'exhibit', id: 'triceratops', age: 67, name: '三角龙', latin: 'Triceratops horridus',
@@ -114,7 +114,7 @@ const STATION_EN = {
   stegosaurus: { name: 'Stegosaurus', milestone: 'Giants of the Jurassic',
     desc: 'With two rows of alternating plates along its back and four spikes at the tip of its tail, it is the most famous plant-eater of the Late Jurassic Morrison Formation. This skeleton is on display at the Denver Museum of Nature & Science.' },
   archaeopteryx: { name: 'Archaeopteryx', milestone: 'The origin of birds',
-    desc: 'It had feathers and wings — but also teeth and a long, bony tail. A link between dinosaurs and birds.' },
+    desc: 'It had feathers and wings — but also teeth, claws and a long, bony tail. Birds are dinosaurs: the one branch of theropods that survived to this day, and Archaeopteryx shows a dinosaur on its way to becoming a bird.' },
   archaefructus: { name: 'Archaefructus', milestone: 'Flowering plants appear',
     desc: 'Its seeds were enclosed in carpels, making it one of the earliest known flowering plants.' },
   triceratops: { name: 'Triceratops', milestone: 'The twilight of the dinosaurs',
@@ -228,6 +228,7 @@ export function formatAge(age, { suffix = '前' } = {}) {
 // veg 植被覆盖，tree 乔木比例（0 草地/苔原，1 森林），water 浅水/潮坪/沼泽，lava 熔岩，
 // ice 冰雪，dunes 沙丘，cracks 龟裂，rock 层状岩床露头
 // flowers 草地上的野花（中新世草原扩张之后才有，全新世最多），blossom 开花的树（白垩纪中期开花植物扩张之后）
+// fields 农田（农业出现之后；这里画的是美索不达米亚的灌溉大麦田）
 export const GROUND_PALETTE = [
   // 冥古宙：黑色玄武岩结壳，裂缝和熔岩湖发光
   { age: 4600, a: '#1f1917', b: '#3b2e28', lava: 1, cracks: 1, rock: 0.1 },
@@ -265,6 +266,9 @@ export const GROUND_PALETTE = [
   { age: 2.58, a: '#8b9288', b: '#d9dfe2', v: '#6f7a5c', veg: 0.2, tree: 0.25, ice: 0.6, cracks: 0.3, flowers: 0.15 },   // 冰期草原的夏天也开花
   // 全新世：冰期结束
   { age: 0.0117, a: '#8a775a', b: '#c0a37c', v: '#627a3a', veg: 0.55, tree: 0.5, wc: '#2d5c6a', water: 0.1, rock: 0.25, flowers: 0.85, blossom: 0.2 },   // 间冰期：花海
+  // 新月沃地：约 8000 年前农业扩散开来，约 5500 年前苏美尔已是一片片灌溉的大麦田，一直延续到今天
+  { age: 0.008, a: '#8a775a', b: '#c0a37c', v: '#627a3a', veg: 0.55, tree: 0.5, wc: '#2d5c6a', water: 0.1, rock: 0.25, flowers: 0.85, blossom: 0.2 },
+  { age: 0.0055, a: '#8a775a', b: '#c0a37c', v: '#627a3a', veg: 0.55, tree: 0.4, wc: '#2d5c6a', water: 0.1, rock: 0.15, flowers: 0.7, blossom: 0.15, fields: 0.9 },
 ];
 
 // ---- 天空：按年代的关键帧（sRGB） ----

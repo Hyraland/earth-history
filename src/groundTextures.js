@@ -48,7 +48,7 @@ export function bakeGroundTextures(renderer) {
 }
 
 // 年代查找表：7 行 × LUT_W 列（半精度浮点，可线性插值）
-//   行 0 岩土色 a · 行 1 岩土色 b · 行 2 植被色 · 行 3 水色 · 行 4 植被/乔木/水/熔岩 · 行 5 冰/沙丘/龟裂/露头 · 行 6 野花/开花的树
+//   行 0 岩土色 a · 行 1 岩土色 b · 行 2 植被色 · 行 3 水色 · 行 4 植被/乔木/水/熔岩 · 行 5 冰/沙丘/龟裂/露头 · 行 6 野花/开花的树/农田
 export const ERA_ROWS = 7;
 const LUT_W = 2048;
 const BLEND = 160;
@@ -64,7 +64,7 @@ export function buildEraLut(palette, walkLength) {
       [...lin(p.wc, '#1f4a5a').toArray(), 1],
       [p.veg ?? 0, p.tree ?? 0, p.water ?? 0, p.lava ?? 0],
       [p.ice ?? 0, p.dunes ?? 0, p.cracks ?? 0, p.rock ?? 0],
-      [p.flowers ?? 0, p.blossom ?? 0, 0, 0],
+      [p.flowers ?? 0, p.blossom ?? 0, p.fields ?? 0, 0],
     ],
   }));
   const smooth = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };

@@ -304,6 +304,38 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
   float bank = max(smoothstep(0.2, 0.7, m1.b), smoothstep(0.53, 0.83, m1.a) * 0.7) * (1.0 - ice * 0.7);
   col = mix(col, mix(col, e.v * 0.9, 0.55), bank * veg * (1.0 - chan));
   col = mix(col, e.b * 1.12, chan * 0.8);
+
+  // 麦田：美索不达米亚的灌溉农田。一条条细长的田块（旋转过，不和行走方向对齐，相邻两列错开），
+  // 田块之间是田埂，每隔几列有一条灌溉渠；成熟的大麦金黄，有的还青，有的已收割或休耕；熟麦里夹着红色的虞美人
+  float fields = e.p3.z, canal = 0.0, farm = 0.0;
+  if (fields > 0.001) {
+    const mat2 FR = mat2(0.93, 0.37, -0.37, 0.93);
+    vec2 fp = FR * w;
+    const float FW = 38.0, FL = 170.0;                                   // 田块宽、长
+    float colId = floor(fp.x / FW);
+    float stagger = 0.5 * mod(colId, 2.0);
+    vec2 fcell = vec2(colId, floor(fp.y / FL + stagger));
+    vec2 fl2 = vec2(fract(fp.x / FW), fract(fp.y / FL + stagger));
+    vec3 fh = fl_hash3(fcell + 17.0);
+    farm = fields * smoothstep(0.4, 0.52, texture2D(uMac2, w / 4096.0 + vec2(0.21, 0.63)).r + 0.2 * fields) * (1.0 - chan);   // 留出一些野花草地
+    float dEdge = min(min(fl2.x, 1.0 - fl2.x) * FW, min(fl2.y, 1.0 - fl2.y) * FL);   // 到田块边缘的距离（世界单位）
+    float aa = fwidth(fp.x) + 0.2;
+    float dike = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, dEdge);
+    canal = (1.0 - smoothstep(2.2 - aa, 2.2 + aa, fl2.x * FW)) * step(mod(colId, 4.0), 0.5) * farm;
+    vec3 crop = fh.x < 0.55 ? mix(vec3(0.6, 0.42, 0.12), vec3(0.74, 0.56, 0.2), fh.y)   // 熟透的大麦
+              : fh.x < 0.75 ? vec3(0.2, 0.32, 0.07)                                     // 还青着
+              : fh.x < 0.88 ? vec3(0.52, 0.44, 0.28)                                    // 收割后的麦茬
+              : vec3(0.32, 0.23, 0.14);                                                 // 休耕的土
+    float rows = 0.5 + 0.5 * sin(fp.x * 5.2);                                           // 顺着田块的一垄垄
+    crop *= 1.0 - 0.14 * rows * (1.0 - smoothstep(0.08, 0.25, fwidth(fp.x * 0.83)));   // 麦垄太细（一个像素里超过约 1/8 条）就淡掉，免得出摩尔纹
+    crop *= 0.88 + 0.24 * texture2D(uDet, w / 61.0 + fh.xy).r;                          // 风吹过的明暗
+    vec3 poppy;
+    float pp = wildflowers(w * 1.6 + 7.0, 0.16, 0.95, poppy) * step(fh.x, 0.55);
+    crop = mix(crop, poppy, pp * 0.9);
+    col = mix(col, mix(crop, vec3(0.38, 0.3, 0.19), dike * 0.8), farm);
+    h = mix(h, rows * 0.3 * step(fh.x, 0.75) * (1.0 - smoothstep(0.08, 0.25, fwidth(fp.x * 0.83))) + dike * 0.6, farm);
+    rough = mix(rough, 0.9, farm);
+  }
   // 雨区：河道涨满水，低洼处积起水坑，其余地面被淋湿变深
   float rainW = 1.0 - smoothstep(uRainR * 0.5, uRainR * 1.3, abs(w.x - uRainX));
   // 河道里的水从河心往外涨：阈值越低，水越宽。湿润的年代河道本身有水；下雨时阈值随雨量平滑降低，
@@ -312,7 +344,7 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
   float wetEra = smoothstep(0.08, 0.12, water + veg * 0.3);
   float fillLevel = min(mix(1.08, 0.3, wetEra), mix(1.08, 0.42, rainW));
   float floodable = max(chan, bank * 0.95 * smoothstep(0.3, 1.0, rainW));
-  float chanWater = smoothstep(fillLevel, fillLevel + 0.08, floodable) * (1.0 - lava);
+  float chanWater = max(smoothstep(fillLevel, fillLevel + 0.08, floodable), canal) * (1.0 - lava);
 
   // 水：浅海、潮坪、沼泽；下雨时水位线随雨量平滑上升，积起越来越大的水潭
   float wlEra = mix(9.0, mix(0.8, 0.4, water), step(0.001, water));
