@@ -18,7 +18,7 @@ Courtesy of the Smithsonian Institution, National Museum of Natural History, Dep
 ## Sketchfab（CC BY 4.0）
 
 以下模型按 CC BY 4.0 使用，须署名。它们都经过 `tools/process_scan.py` 修改：合并网格并焊接顶点、删除扫描碎片、
-减面、缩小贴图、Draco 压缩；邓氏鱼另外切除了展台背板、支架杆和后方的扫描残片。页面上的展牌和"来源与致谢"面板都有署名。
+减面、缩小贴图、Draco 压缩；邓氏鱼另外切除了展台背板、支架杆和后方的扫描残片；鲸兽删除了原作者补建的白色舌骨、胸骨和腰带，以及蓝灰色的支架杆。页面上的展牌和"来源与致谢"面板都有署名。
 
 | 文件 | 标本 | 原始模型 | 作者 |
 |---|---|---|---|
@@ -35,5 +35,7 @@ Courtesy of the Smithsonian Institution, National Museum of Natural History, Dep
 blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/dunkleosteus.glb --faces 200000 --min-part 0.002 --tex 4096 --cut "(x < -0.55 and y < 1.35) or (x < -0.55 and abs(z) > 0.45) or (x < -0.2 and y < 0.78) or (x < 0.0 and y < 0.6)"
 blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/ichthyosaur.glb --faces 160000 --tex 4096 --min-part 0.0003
 blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/cetotherium.glb --faces 220000 --tex 4096 --min-part 0.0003
+# 第二遍（在上一步的结果上）：删掉白色补建部件和支架杆
+blender -b -P tools/process_scan.py -- export assets/models/cetotherium.glb assets/models/cetotherium.glb --faces 999999 --tex 2048 --weld 1e-8 --min-part 0.002 --drop-material Hioid --cut-color "b > r + 0.04"
 blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/lucy.glb --faces 260000 --tex 2048 --min-part 0.0003
 ```

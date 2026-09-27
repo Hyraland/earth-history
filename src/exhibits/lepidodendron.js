@@ -8,6 +8,7 @@ import { placeOnGround } from './place.js';
 
 const LENGTH = 440;
 const RADIUS = 44;
+const SCALE = 1.8;         // 整体放大
 const AROUND = 26;        // 一圈的叶座数（必须是整数，贴图才能首尾相接）
 
 // 贴图坐标：u 绕树干一圈（0..1），v 沿树干（0..1）
@@ -130,5 +131,6 @@ export function buildLepidodendron(exhibit, { renderer }) {
   caps.forEach((c) => log.add(new THREE.Mesh(c, endMat)));
   log.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   log.rotation.x = 0.4;          // 绕自身轴转一点，叶座的排列不那么规整
+  log.scale.setScalar(SCALE);
   return placeOnGround(log, { yaw: -0.22, sink: 0.22 });
 }

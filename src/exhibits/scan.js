@@ -44,7 +44,7 @@ export const SCANS = {
   },
   triceratops: {
     // 绕身体长轴再转 -0.56：在直立（-0.3）的基础上，背部再朝远处转约 15°
-    file: 'triceratops.glb', size: 540, orient: [-0.28, 0, Math.PI / 2 - 0.56], yaw: Math.PI / 2 - 0.35,
+    file: 'triceratops.glb', size: 540, orient: [-0.28, 0, Math.PI / 2 - 0.56], yaw: Math.PI / 2 - 0.35, sink: 0.06,   // 略微下沉，身体倾斜后各只脚都踩进地面
     credit: { ...CC0, by: SI, title: 'Triceratops horridus Marsh, 1889, USNM PAL500000', url: 'https://3d.si.edu/object/3d/triceratops-horridus-marsh-1889:d8c623be-4ebc-11ea-b77f-2e728ce88125' },
   },
   // 二齿兽头骨：真实大小只有十几厘米，放大成一座"头骨山"，吻端朝镜头右前方
