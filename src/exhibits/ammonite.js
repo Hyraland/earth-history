@@ -10,7 +10,7 @@ import { bakeTexture } from '../bake.js';
 
 const TAU = Math.PI * 2;
 const SHAPE = { radius: 112, turns: 4.3, expansion: 2.0, ribsPerTurn: 26 };
-const SCALE = 1.5;   // 整体放大
+const SCALE = 2.25;  // 整体放大
 
 function shellGeometry({ radius, turns, expansion, ribsPerTurn, segPerTurn = 260, segRing = 72 }) {
   const b = Math.log(expansion) / TAU;               // 每转一圈半径放大 expansion 倍

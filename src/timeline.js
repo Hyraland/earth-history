@@ -29,7 +29,7 @@ export const STATIONS = [
     milestone: '哺乳动物的远祖支系', desc: '二叠纪晚期的小型植食性合弓类，嘴里只有一对獠牙，会挖洞生活。合弓类不是恐龙，和哺乳动物的亲缘关系反而更近。' },
   { kind: 'extinction', age: 252, name: '二叠纪末大灭绝', desc: '西伯利亚大规模火山喷发，八成以上的海洋物种灭绝，是地球史上最严重的一次。' },
   { kind: 'extinction', age: 201, name: '三叠纪末大灭绝', desc: '中大西洋岩浆省喷发。灾难之后，恐龙崛起为陆地霸主。' },
-  { kind: 'exhibit', id: 'ammonite', age: 195, name: '菊石', latin: 'Asteroceras obtusum',
+  { kind: 'exhibit', id: 'ammonite', age: 195, z: -1000,   // 放大后往远处挪，不挡小人的路 name: '菊石', latin: 'Asteroceras obtusum',
     milestone: '中生代的海洋', desc: '侏罗纪早期的菊石，粗壮笔直的放射肋和腹部中央的棱脊是它的特征。菊石演化快、分布广，是地质学家划分地层的"时钟"。' },
   { kind: 'exhibit', id: 'ichthyosaur', age: 182, name: '狭翼鱼龙', latin: 'Stenopterygius quadriscissus',
     milestone: '爬行动物重返海洋', desc: '德国霍尔茨马登黑色页岩中的完整骨架。鱼龙的祖先是陆地爬行动物，三叠纪初期重新回到海洋，演化出和海豚相似的流线体形。' },
