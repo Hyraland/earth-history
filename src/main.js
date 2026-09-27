@@ -162,6 +162,12 @@ window.addEventListener('wheel', (e) => {
 }, { passive: true });
 
 const hud = createHud({ onJump: jump });
+
+// 进度条：鼠标移到画面底部附近才显示（样式见 index.html）
+window.addEventListener('mousemove', (e) => {
+  document.body.classList.toggle('near-bottom', e.clientY > window.innerHeight - 120);
+}, { passive: true });
+document.documentElement.addEventListener('mouseleave', () => document.body.classList.remove('near-bottom'));
 setupCredits();
 
 // ---- 背景音乐：浏览器要求用户先操作一次（点击或按键）才能出声 ----

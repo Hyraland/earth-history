@@ -87,6 +87,11 @@
     .ending-lines.dim p.on { opacity: 0.55; transition-duration: 4s; }
     body.ending-playing #caption, body.ending-playing #labels, body.ending-playing #help, body.ending-playing #timeline { opacity: 0 !important; pointer-events: none; }   /* 字幕的透明度是逐帧写在行内样式里的 */
     #labels, #help, #timeline { transition: opacity 1.5s; }
+    /* 有鼠标的设备：进度条平时隐藏，鼠标移到画面底部附近时淡入（触屏没有悬停，保持常显） */
+    @media (hover: hover) and (pointer: fine) {
+      #timeline { opacity: 0; transition: opacity 0.6s; }
+      body.near-bottom #timeline, #timeline:hover { opacity: 1; transition-duration: 0.25s; }
+    }
 
     #light-panel { position: fixed; right: 28px; top: 118px; width: 250px; padding: 14px 16px 12px; z-index: 15;
       background: rgba(30, 25, 21, 0.82); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
