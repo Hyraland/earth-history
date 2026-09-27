@@ -25,6 +25,7 @@ uniform float uLook;    // 抬头望向前方
 uniform float uLick;    // 抬爪舔毛
 uniform float uTime;
 uniform float uCam;     // 镜头在小猫的哪一侧：+1 = 模型的 +z 一侧，-1 = -z 一侧
+uniform float uGazeUp;  // 抬头望天（结尾看星空时）
 
 vec2 rot(vec2 v, float a) { float c = cos(a), s = sin(a); return vec2(c * v.x - s * v.y, s * v.x + c * v.y); }
 
@@ -53,7 +54,7 @@ void catDeform(vec3 p, out vec3 q, inout vec3 n) {
   vec2 nk = vec2(0.33, 0.46);
   float hw = smoothstep(0.30, 0.38, p.x) * smoothstep(0.33, 0.40, p.y);
   float lickBob = 0.12 * sin(uTime * 11.0) * uLick;
-  float pitch = (0.12 * uLook - 0.45 * uLick - lickBob - 0.5 * 0.8 * uSit) * hw;   // 抵消坐下时身体的前倾，头保持平视
+  float pitch = (0.12 * uLook + 0.5 * uGazeUp - 0.45 * uLick - lickBob - 0.5 * 0.8 * uSit) * hw;   // 抵消坐下时身体的前倾，头保持平视
   vec2 hv = rot(q.xy - nk, pitch);
   q.xy = nk + hv;
   n.xy = mix(n.xy, rot(n.xy, pitch), hw);
@@ -122,7 +123,7 @@ export function createWalker() {
   root.add(body);
   const uniforms = {
     uPhase: { value: 0 }, uWalk: { value: 0 }, uRun: { value: 0 }, uSit: { value: 0 },
-    uLook: { value: 0 }, uLick: { value: 0 }, uTime: { value: 0 }, uCam: { value: 1 },
+    uLook: { value: 0 }, uLick: { value: 0 }, uTime: { value: 0 }, uCam: { value: 1 }, uGazeUp: { value: 0 },
   };
 
   const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/gltf/');
@@ -150,11 +151,13 @@ export function createWalker() {
   let yaw = 0;
   let still = 0;           // 停下了多久
   let nextLick = 6;        // 坐下后多久舔一次爪子
-  const s = { walk: 0, run: 0, sit: 0, look: 0, lick: 0 };
+  const s = { walk: 0, run: 0, sit: 0, look: 0, lick: 0, gazeUp: 0 };
+  let gazeUp = 0;          // 外部要求抬头望天
 
   return {
     object: root,
     uniforms,      // 调试用
+    setGazeUp(v) { gazeUp = v; },
     update(dt, velocity) {
       time += dt;
       const speed = Math.abs(velocity);
@@ -178,6 +181,7 @@ export function createWalker() {
         if (still > nextLick + 3.2) nextLick = still + 6 + Math.random() * 6;
       }
       if (moving) nextLick = 6;
+      if (gazeUp) lick = 0;                         // 望着星空时不舔爪子
       const look = still > 2.2 && !lick ? 1 : 0;
 
       s.walk = approach(s.walk, walk, 5, dt);
@@ -185,6 +189,7 @@ export function createWalker() {
       s.sit = approach(s.sit, sit, sit ? 1.6 : 7, dt);          // 坐下慢，起身快
       s.look = approach(s.look, look, 2.5, dt);
       s.lick = approach(s.lick, lick, 4, dt);
+      s.gazeUp = approach(s.gazeUp, gazeUp, 0.8, dt);
 
       // 步频：走的时候随速度，跑的时候固定在每秒约 2.7 步——快进时不会碎步乱舞
       const cadence = THREE.MathUtils.lerp(Math.max(Math.min(speed, 8), turning ? 5 : 0) * 1.4, 17, s.run);
@@ -197,6 +202,7 @@ export function createWalker() {
       u.uSit.value = s.sit;
       u.uLook.value = s.look;
       u.uLick.value = s.lick;
+      u.uGazeUp.value = s.gazeUp;
       u.uTime.value = time;
       u.uCam.value = Math.cos(yaw) >= 0 ? 1 : -1;   // 转身后镜头在模型的另一侧
     },

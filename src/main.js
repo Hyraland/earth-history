@@ -131,13 +131,16 @@ const motion = {
   jumpTo: null,
 };
 const minScroll = -WALKER.x, maxScroll = WALK_LENGTH - WALKER.x;
-const jump = (walkerX) => { motion.jumpTo = walkerX - WALKER.x; motion.paused = false; };
+// 结尾播放时锁住操作（见下面的"结尾"）
+const endingLocked = () => ending.state === 'playing';
+const jump = (walkerX) => { if (endingLocked()) return; motion.jumpTo = walkerX - WALKER.x; motion.paused = false; };
 
 // 网址带 #站点id（例如 index.html#stegosaurus、#carnian）时，直接停在这一站前面
 const linked = STATIONS.find((s) => s.id && s.id === decodeURIComponent(location.hash.slice(1)));
 if (linked) Object.assign(motion, { scroll: linked.x - 330 - WALKER.x, paused: true });
 
 window.addEventListener('keydown', (e) => {
+  if (endingLocked()) { if (e.code === 'Space') e.preventDefault(); return; }
   if (e.code === 'Space') { motion.paused = !motion.paused; motion.jumpTo = null; e.preventDefault(); }
   if (e.code === 'ArrowRight') { motion.right = true; motion.jumpTo = null; }
   if (e.code === 'ArrowLeft') { motion.left = true; motion.jumpTo = null; }
@@ -147,6 +150,7 @@ window.addEventListener('keyup', (e) => {
   if (e.code === 'ArrowLeft') motion.left = false;
 });
 window.addEventListener('wheel', (e) => {
+  if (endingLocked()) return;
   motion.jumpTo = null;
   motion.velocity = THREE.MathUtils.clamp(motion.velocity + (e.deltaY + e.deltaX) * 2, -1000, 1000);
 }, { passive: true });
@@ -280,8 +284,87 @@ function setupLightPanel() {
   for (const ev of ['keydown', 'keyup', 'wheel', 'pointerdown']) panel.addEventListener(ev, (e) => e.stopPropagation());
   document.getElementById('light-open').addEventListener('click', (e) => { e.stopPropagation(); panel.hidden = !panel.hidden; });
   show();
+  return show;
 }
-setupLightPanel();
+const refreshLightPanel = setupLightPanel();
+
+// ---- 结尾：走到"现在"时，天黑下来，镜头慢慢抬头望向银河，结束语一行行浮现，像展览的尾声 ----
+// 第一次走到这里时自动播放，播放时锁住操作，播完把操作还给观众；看过一次之后不再自动播放，
+// 菜单里出现"重播结尾"。往回走一段后，恢复观众原来选的光照。
+const END_X = WALK_LENGTH;
+const ENDING_LINES = [
+  '你走到了今天。',
+  '四十六亿年里，这颗星球冷却、下雨、冰封，又开满了花。',
+  '五次大灭绝之后，生命每一次都重新开始。',
+  '如果把这四十六亿年压缩成一天，智人出现在午夜前的最后六秒。',
+  '我们身体里的碳、氧和铁，都诞生在比太阳更古老的恒星里。',
+  '谢谢你走完这段路。',
+];
+const ending = { state: 'idle', t: 0, lift: 0, saved: null, pending: false, seen: false };
+try { ending.seen = localStorage.getItem('earth-ending-seen') === '1'; } catch { /* 当作没看过 */ }
+const endingEl = document.getElementById('ending');
+const endingLines = endingEl.querySelector('.ending-lines');
+const endingHint = endingEl.querySelector('.ending-hint');
+const replayLink = document.getElementById('ending-replay');
+ENDING_LINES.forEach((text, i) => {
+  const p = document.createElement('p');
+  p.textContent = text;
+  if (i === 0) p.className = 'first';
+  endingLines.appendChild(p);
+});
+replayLink.hidden = !ending.seen;
+replayLink.addEventListener('click', (e) => { e.stopPropagation(); ending.pending = true; jump(END_X); });
+
+function startEnding() {
+  ending.state = 'playing';
+  ending.t = 0;
+  ending.saved ??= { ...light };
+  if (light.mode !== 'night') { Object.assign(light, { mode: 'night', elevation: LIGHT_MODES.night.elevation }); refreshLightPanel(); }   // 不存进本地设置
+  Object.assign(motion, { jumpTo: END_X - WALKER.x, paused: true, right: false, left: false });
+  [...endingLines.children].forEach((p) => p.classList.remove('on'));
+  endingLines.classList.remove('dim');
+  endingHint.classList.remove('on');
+  endingEl.hidden = false;
+  document.body.classList.add('ending-playing');
+  document.getElementById('light-panel').hidden = true;
+  walker.setGazeUp(1);
+  music.flourish();
+}
+function finishEnding() {
+  ending.state = 'done';
+  document.body.classList.remove('ending-playing');
+  endingLines.classList.add('dim');
+  endingHint.classList.add('on');
+  walker.setGazeUp(0);
+  ending.seen = true;
+  try { localStorage.setItem('earth-ending-seen', '1'); } catch { /* 忽略 */ }
+  replayLink.hidden = false;
+}
+function leaveEnding() {
+  ending.state = 'idle';
+  endingEl.hidden = true;
+  if (ending.saved) { Object.assign(light, ending.saved); refreshLightPanel(); }
+  ending.saved = null;
+}
+function updateEnding(dt, walkerX) {
+  const arrived = walkerX >= END_X - 150;
+  if (ending.state === 'idle' && arrived && (ending.pending || (!ending.seen && motion.velocity >= 0))) {
+    ending.pending = false;
+    startEnding();
+  }
+  if (ending.state === 'playing') {
+    ending.t += dt;
+    [...endingLines.children].forEach((p, i) => p.classList.toggle('on', ending.t > 5 + i * 3.6));
+    if (ending.t > 5 + ENDING_LINES.length * 3.6 + 4) finishEnding();
+  }
+  if (ending.state === 'done' && walkerX < END_X - 700) leaveEnding();
+  // 镜头：抬头望向银河（从俯视 -0.36 抬到仰视 0.26），播完再慢慢低头
+  const target = ending.state === 'playing' && ending.t > 2.5 ? 1 : 0;
+  ending.lift += (target - ending.lift) * Math.min(1, dt * (target ? 0.3 : 0.7));
+  const e = ending.lift * ending.lift * (3 - 2 * ending.lift);
+  camera.rotation.x = CAMERA.pitch + e * 0.62;
+  camera.position.y = CAMERA.y - e * 60;
+}
 
 // ---- 自适应分辨率 ----
 const perf = { sum: 0, n: 0 };
@@ -332,6 +415,7 @@ function step() {
   updateAtmosphere(age, walkerX);
   updateEnvironment(time);
   hud.update(walkerX, age);
+  updateEnding(dt, walkerX);
   sky.mesh.position.copy(camera.position);
   sky.uniforms.uTime.value = time;
   // 雨幕：雨区进入画面范围（左右约 1800）时才绘制
@@ -359,4 +443,4 @@ const teleport = (walkerX) => {
   Object.assign(motion, { scroll: walkerX - WALKER.x, velocity: 0, jumpTo: null, paused: true });
   step();
 };
-window.__earth = { motion, jump, teleport, step, music, walker, exhibits, camera, renderer, composer, scene, WALK_LENGTH, WALKER };
+window.__earth = { motion, jump, teleport, step, music, walker, ending, exhibits, camera, renderer, composer, scene, WALK_LENGTH, WALKER };

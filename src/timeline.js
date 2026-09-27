@@ -63,7 +63,7 @@ export const STATIONS = [
   { kind: 'event', age: 2.58, name: '第四纪冰期', desc: '冰盖周期性地推进和消退，冰期与间冰期开始交替。' },
   { kind: 'exhibit', id: 'mammoth', age: 0.02, name: '猛犸象', latin: 'Mammuthus primigenius',
     milestone: '末次冰盛期', desc: '长毛象的象牙可达 4 米长。它们与早期人类共同生活在冰原上。' },
-  { kind: 'end', age: 0, name: '现在', desc: '你走到了今天。' },
+  { kind: 'end', age: 0, name: '现在', desc: '' },   // 结束语在结尾的星空里（main.js 的 ENDING_LINES）
 ];
 
 // 每类站点占用的"半宽"——相邻两站的距离 = 两者半宽之和

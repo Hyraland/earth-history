@@ -119,8 +119,7 @@ export function createMusic() {
   }
 
   // 星星：快起、很长的衰减；正弦加一点高八度的泛音，左右随机
-  function playStar(t) {
-    const m = STARS[Math.floor(Math.random() * STARS.length)];
+  function playStar(t, m = STARS[Math.floor(Math.random() * STARS.length)]) {
     const pan = ctx.createStereoPanner();
     pan.pan.value = Math.random() * 1.6 - 0.8;
     const g = ctx.createGain();
@@ -182,5 +181,11 @@ export function createMusic() {
       return muted;
     },
     setRain(v) { rain = v; },
+    // 结尾：一串慢慢升高的星光音
+    flourish() {
+      if (!ctx || muted) return;
+      const t = ctx.currentTime + 0.4;
+      [74, 78, 81, 86, 88, 90, 93].forEach((m, i) => playStar(t + i * 0.85 + Math.random() * 0.1, m));
+    },
   };
 }

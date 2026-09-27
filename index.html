@@ -69,6 +69,19 @@
     .placard-credit { font-size: 11px; color: var(--ink-dim); margin-top: 8px; padding-top: 7px; border-top: 1px solid rgba(255,255,255,0.12); }
     .placard-credit a, .credits-card a { color: inherit; pointer-events: auto; text-decoration: underline; text-underline-offset: 2px; }
 
+    #ending { position: fixed; left: 50%; top: 14vh; transform: translateX(-50%); width: min(640px, 88vw); text-align: center;
+      pointer-events: none; z-index: 5; text-shadow: 0 1px 16px rgba(0,0,0,0.7); }
+    #ending[hidden] { display: none; }
+    .ending-lines p { margin: 0 0 14px; font-family: var(--serif); font-size: 18px; line-height: 1.7; color: var(--ink);
+      opacity: 0; transform: translateY(6px); transition: opacity 2.2s ease, transform 2.2s ease; }
+    .ending-lines p.first { font-size: 34px; font-weight: 600; margin-bottom: 26px; letter-spacing: 0.04em; }
+    .ending-lines p.on { opacity: 1; transform: none; }
+    .ending-lines.dim p.on { opacity: 0.55; transition-duration: 4s; }
+    .ending-hint { margin-top: 18px; font-size: 13px; color: var(--ink-dim); opacity: 0; transition: opacity 2s; }
+    .ending-hint.on { opacity: 1; }
+    body.ending-playing #caption, body.ending-playing #labels, body.ending-playing #help, body.ending-playing #timeline { opacity: 0 !important; pointer-events: none; }   /* 字幕的透明度是逐帧写在行内样式里的 */
+    #labels, #help, #timeline { transition: opacity 1.5s; }
+
     #light-panel { position: fixed; right: 28px; top: 118px; width: 250px; padding: 14px 16px 12px; z-index: 15;
       background: rgba(30, 25, 21, 0.82); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
       font-size: 12px; color: var(--ink-dim); backdrop-filter: blur(6px); }
@@ -119,7 +132,8 @@
   <div id="labels"></div>
   <div id="hud"><div id="era"></div><div id="age"></div></div>
   <div id="caption"><div id="caption-title"></div><div id="caption-desc"></div></div>
-  <div id="help"><kbd>空格</kbd> 暂停 · <kbd>→</kbd> 快进 · <kbd>←</kbd> 后退<br />滚轮拖动时间 · 点击时间轴跳转<br /><a id="light-open" href="#" onclick="return false">☀ 光照</a> · <a id="music-toggle" href="#" onclick="return false">♪ 音乐：开</a> · <a id="credits-open" href="#" onclick="return false">来源与致谢</a></div>
+  <div id="help"><kbd>空格</kbd> 暂停 · <kbd>→</kbd> 快进 · <kbd>←</kbd> 后退<br />滚轮拖动时间 · 点击时间轴跳转<br /><a id="ending-replay" href="#" onclick="return false" hidden>✦ 重播结尾<br /></a><a id="light-open" href="#" onclick="return false">☀ 光照</a> · <a id="music-toggle" href="#" onclick="return false">♪ 音乐：开</a> · <a id="credits-open" href="#" onclick="return false">来源与致谢</a></div>
+  <div id="ending" hidden><div class="ending-lines"></div><div class="ending-hint">← 往回走，每一段历史都还在那里 · 菜单里可以重播结尾</div></div>
   <div id="light-panel" hidden>
     <div class="lp-modes"><button data-mode="day">白天</button><button data-mode="sunset">夕阳</button><button data-mode="night">夜晚</button></div>
     <label><span><span id="lp-body-label">太阳</span>方位</span><input type="range" id="lp-az" min="-180" max="180" step="1" /><span id="lp-az-v" class="lp-v"></span></label>

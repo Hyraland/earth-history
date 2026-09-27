@@ -43,7 +43,7 @@ export function createHud({ onJump }) {
     onJump(Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)) * WALK_LENGTH);
   });
 
-  const captions = STATIONS.filter((s) => s.kind !== 'exhibit');
+  const captions = STATIONS.filter((s) => s.kind !== 'exhibit' && s.kind !== 'end');   // 终点的话在结尾的星空里
   let lastEra = '', lastAge = '', lastCap = null;
 
   return {
