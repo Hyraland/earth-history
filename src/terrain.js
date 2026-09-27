@@ -192,7 +192,8 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
   col = mix(col, e.b * 1.12, chan * 0.8);
   // 雨区：河道涨满水，低洼处积起水坑，其余地面被淋湿变深
   float rainW = 1.0 - smoothstep(uRainR * 0.5, uRainR * 1.3, abs(w.x - uRainX));
-  float chanWater = chan * max(smoothstep(0.05, 0.3, water + veg * 0.3), rainW) * (1.0 - lava);
+  // 河道中间是连续的水面，只在河岸边缘渐变——否则河道会变成"半湿的砾石"，和相连的水塘反光不一样
+  float chanWater = smoothstep(0.3, 0.6, chan) * max(smoothstep(0.05, 0.3, water + veg * 0.3), rainW) * (1.0 - lava);
 
   // 水：浅海、潮坪、沼泽
   float wl = mix(0.8, 0.4, water) - rainW * 0.08;

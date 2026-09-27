@@ -156,12 +156,23 @@ setupCredits();
 // ---- 背景音乐：浏览器要求用户先操作一次（点击或按键）才能出声 ----
 const music = createMusic();
 const musicLink = document.getElementById('music-toggle');
-const showMusic = () => { musicLink.textContent = music.muted ? '♪ 音乐：关' : '♪ 音乐：开'; };
+const showMusic = () => {
+  musicLink.textContent = music.muted ? '♪ 音乐：关' : music.started ? '♪ 音乐：开' : '♪ 音乐：点击页面开始';
+};
 showMusic();
-musicLink.addEventListener('click', (e) => { e.stopPropagation(); music.toggle(); showMusic(); });
-const startMusic = () => music.start();
-window.addEventListener('pointerdown', startMusic, { once: true });
-window.addEventListener('keydown', startMusic, { once: true });
+musicLink.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!music.muted && !music.started) music.start();   // 还没开始时点它，是想开始而不是关掉
+  else music.toggle();
+  setTimeout(showMusic, 50);
+});
+// 在捕获阶段监听：页面上的控件（时间轴、菜单）拦下事件也不影响；滚轮不算"用户操作"，浏览器不允许它启动声音
+const startMusic = (e) => {
+  if (e.target === musicLink) return;          // 点的是开关本身，交给开关处理
+  music.start();
+  setTimeout(showMusic, 50);
+};
+for (const ev of ['pointerdown', 'keydown', 'touchend']) window.addEventListener(ev, startMusic, { capture: true });
 
 // ---- 天空颜色随年代变化，大灭绝前后蒙上一层灰 ----
 const skyKeys = SKY_KEYS.map((k) => ({ ...k, h: new THREE.Color(k.horizon), z: new THREE.Color(k.zenith) }));

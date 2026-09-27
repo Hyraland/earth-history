@@ -3,7 +3,7 @@
 //   走：四条腿按猫的步态依次迈出（左后 → 左前 → 右后 → 右前），尾巴竖起、尖端弯成问号
 //   跑：换成奔跑的步态（后腿一对、前腿一对先后蹬地），步幅更大，身体前后起伏，尾巴向后伸平
 //   停：腿收回到身体下面站定；站一会儿就坐下（后半身放低、后腿折起、尾巴绕到身体侧面）
-//   坐着：转头看镜头；隔一阵抬起靠镜头一侧的前爪舔一舔
+//   坐着：抬头望着前方；隔一阵抬起靠镜头一侧的前爪舔一舔
 // 各个动作用 0..1 的权重平滑过渡，所以停下、转身、坐下、起身之间都是连贯的。阴影用同样的变形。
 //
 // 模型坐标（glb 原样）：长 1，头朝 +x，脚底 y = 0，近侧（+z）和远侧（-z）各两条腿。
@@ -21,7 +21,7 @@ uniform float uPhase;   // 步态相位（弧度）
 uniform float uWalk;    // 迈步的幅度（0 = 站定）
 uniform float uRun;     // 0 = 走，1 = 跑
 uniform float uSit;     // 坐下
-uniform float uLook;    // 转头看镜头
+uniform float uLook;    // 抬头望向前方
 uniform float uLick;    // 抬爪舔毛
 uniform float uTime;
 uniform float uCam;     // 镜头在小猫的哪一侧：+1 = 模型的 +z 一侧，-1 = -z 一侧
@@ -49,7 +49,7 @@ void catDeform(vec3 p, out vec3 q, inout vec3 n) {
   vec2 tz = rot(vec2(q.x - tb.x, q.z), sway + wrap);
   q.x = tb.x + tz.x; q.z = tz.y;
 
-  // ---- 头：以脖子为轴。看镜头（绕竖轴转向镜头一侧、微微抬头）；舔毛时低头，一下一下地舔 ----
+  // ---- 头：以脖子为轴。坐着时微微抬头望向前方，偶尔慢慢左右看一看；舔毛时低头，一下一下地舔 ----
   vec2 nk = vec2(0.33, 0.46);
   float hw = smoothstep(0.30, 0.38, p.x) * smoothstep(0.33, 0.40, p.y);
   float lickBob = 0.12 * sin(uTime * 11.0) * uLick;
@@ -57,7 +57,7 @@ void catDeform(vec3 p, out vec3 q, inout vec3 n) {
   vec2 hv = rot(q.xy - nk, pitch);
   q.xy = nk + hv;
   n.xy = mix(n.xy, rot(n.xy, pitch), hw);
-  float yawH = 1.0 * uCam * uLook * (1.0 - uLick) * hw;
+  float yawH = 0.18 * sin(uTime * 0.37) * smoothstep(0.6, 1.0, sin(uTime * 0.13)) * uLook * (1.0 - uLick) * hw;
   vec2 hz = rot(vec2(q.x - nk.x, q.z), yawH);
   q.x = nk.x + hz.x; q.z = hz.y;
 
