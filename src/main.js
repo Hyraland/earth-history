@@ -14,6 +14,7 @@ import { ExhibitManager } from './exhibits/index.js';
 import { createHud } from './hud.js';
 import { setupCredits } from './credits.js';
 import { createRain } from './rain.js';
+import { createMusic } from './music.js';
 
 // ---- 镜头与行走参数 ----
 const CAMERA = { y: 380, z: 0, pitch: -0.36, fov: 40 };
@@ -151,6 +152,16 @@ window.addEventListener('wheel', (e) => {
 const hud = createHud({ onJump: jump });
 setupCredits();
 
+// ---- 背景音乐：浏览器要求用户先操作一次（点击或按键）才能出声 ----
+const music = createMusic();
+const musicLink = document.getElementById('music-toggle');
+const showMusic = () => { musicLink.textContent = music.muted ? '♪ 音乐：关' : '♪ 音乐：开'; };
+showMusic();
+musicLink.addEventListener('click', (e) => { e.stopPropagation(); music.toggle(); showMusic(); });
+const startMusic = () => music.start();
+window.addEventListener('pointerdown', startMusic, { once: true });
+window.addEventListener('keydown', startMusic, { once: true });
+
 // ---- 天空颜色随年代变化，大灭绝前后蒙上一层灰 ----
 const skyKeys = SKY_KEYS.map((k) => ({ ...k, h: new THREE.Color(k.horizon), z: new THREE.Color(k.zenith) }));
 const ashH = new THREE.Color(ASH_SKY.horizon), ashZ = new THREE.Color(ASH_SKY.zenith);
@@ -231,6 +242,7 @@ function step() {
   sky.mesh.position.copy(camera.position);
   sky.uniforms.uTime.value = time;
   // 雨幕：雨区进入画面范围（左右约 1800）时才绘制
+  music.setRain(rainSky);
   rain.update(time, motion.scroll, 1 - THREE.MathUtils.smoothstep(Math.abs(motion.scroll - RAIN.x), RAIN.r + 1600, RAIN.r + 2100));
 
   composer.render();
@@ -254,4 +266,4 @@ const teleport = (walkerX) => {
   Object.assign(motion, { scroll: walkerX - WALKER.x, velocity: 0, jumpTo: null, paused: true });
   step();
 };
-window.__earth = { motion, jump, teleport, step, exhibits, camera, renderer, composer, scene, WALK_LENGTH, WALKER };
+window.__earth = { motion, jump, teleport, step, music, exhibits, camera, renderer, composer, scene, WALK_LENGTH, WALKER };

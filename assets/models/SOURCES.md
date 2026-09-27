@@ -29,6 +29,8 @@ Courtesy of the Smithsonian Institution, National Museum of Natural History, Dep
 | `stegosaurus.glb` | *Stegosaurus*，丹佛自然与科学博物馆展出骨架，Triebold Paleontology 用 Artec Space Spider 扫描；原模型没有颜色贴图，网页里按三角龙贴图的色调着色 | [Stegosaurus Skeleton](https://sketchfab.com/3d-models/stegosaurus-skeleton-dc6e1c748484449587b81426d41da6cb) | Artec 3D |
 | `lucy.glb` | 露西 AL 288-1（据标本照片建模，不是扫描） | ["Lucy" Australopithecus afarensis; AL 288-1](https://sketchfab.com/3d-models/lucy-australopithecus-afarensis-al-288-1-9f6c06b0a4e54890a87486e414b8cb0d) | JackalopeODDsENDs |
 
+| `cat.glb` | 领路的小猫（虎斑猫，静止的迈步姿势；走路动画在 `src/walker.js` 里用顶点着色器做） | [Medium poly Cat In Motion 3d Model Free](https://sketchfab.com/3d-models/medium-poly-cat-in-motion-3d-model-free-5c31c77904de4e458d434c167ea0f4bc) | iRahulRajput |
+
 许可证：https://creativecommons.org/licenses/by/4.0/
 
 处理命令（原始下载放在不进 git 的 `assets/incoming/`）：
@@ -40,5 +42,6 @@ blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/cetothe
 # 第二遍（在上一步的结果上）：删掉白色补建部件和支架杆
 blender -b -P tools/process_scan.py -- export assets/models/cetotherium.glb assets/models/cetotherium.glb --faces 999999 --tex 2048 --weld 1e-8 --min-part 0.002 --drop-material Hioid --cut-color "b > r + 0.04"
 blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/stegosaurus.glb --faces 260000 --min-part 0.0003
+blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/cat.glb --faces 999999 --tex 1024 --weld 1e-8
 blender -b -P tools/process_scan.py -- export <scene.gltf> assets/models/lucy.glb --faces 260000 --tex 2048 --min-part 0.0003
 ```
