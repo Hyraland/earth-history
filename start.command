@@ -6,4 +6,4 @@ PORT=8765
 echo "地球漫步：http://localhost:$PORT"
 echo "关闭这个窗口或按 Ctrl+C 即可停止。"
 (sleep 1; open "http://localhost:$PORT") &
-exec python3 -m http.server "$PORT" --bind 127.0.0.1
+exec python3 tools/serve.py "$PORT"
