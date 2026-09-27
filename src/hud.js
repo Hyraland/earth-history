@@ -35,7 +35,7 @@ export function createHud({ onJump }) {
     const t = document.createElement('div');
     t.className = 'tl-tick';
     t.style.left = pct(xAtAge(age));
-    t.textContent = age === 0 ? '现在' : formatAge(age, { suffix: '' });
+    t.textContent = formatAge(age, { suffix: '' });
     track.appendChild(t);
   });
   bar.addEventListener('click', (ev) => {

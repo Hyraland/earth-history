@@ -6,6 +6,7 @@ import { buildPlaceholder } from './placeholder.js';
 import { SCANS } from './scan.js';
 import { CURVE_R, curveDrop } from '../terrain.js';
 import { formatAge } from '../timeline.js';
+import { t } from '../i18n.js';
 
 // 构建函数签名：(exhibit, { renderer }) => { object, labelAnchor }
 const BUILDERS = {
@@ -102,12 +103,12 @@ export class ExhibitManager {
     el.innerHTML = `
       <div class="placard-card">
         <div class="placard-head"><span class="placard-idx">${String(e.index).padStart(2, '0')}</span>
-          <span class="placard-name">${e.name}</span>${placeholder ? '<span class="placard-tag">模型待建</span>' : ''}</div>
-        <div class="placard-latin">${e.latin}</div>
+          <span class="placard-name">${e.name}</span>${placeholder ? `<span class="placard-tag">${t('模型待建', 'Model coming')}</span>` : ''}</div>
+        ${e.latin && e.latin !== e.name ? `<div class="placard-latin">${e.latin}</div>` : ''}
         <div class="placard-meta">${formatAge(e.age)} · ${e.milestone}</div>
         <div class="placard-desc">${e.desc}</div>
-        ${credit ? `<div class="placard-credit">模型：<a href="${credit.url}" target="_blank" rel="noopener">${credit.by}</a>
-          · <a href="${credit.licenseUrl}" target="_blank" rel="noopener">${credit.license}</a>${credit.modified ? ' · 已修改' : ''}</div>` : ''}
+        ${credit ? `<div class="placard-credit">${t('模型：', 'Model: ')}<a href="${credit.url}" target="_blank" rel="noopener">${credit.by}</a>
+          · <a href="${credit.licenseUrl}" target="_blank" rel="noopener">${credit.license}</a>${credit.modified ? t(' · 已修改', ' · modified') : ''}</div>` : ''}
       </div>
       <div class="placard-stem"></div>`;
     this.labelLayer.appendChild(el);

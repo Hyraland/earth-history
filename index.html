@@ -4,6 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>地球漫步</title>
+  <!-- 字体：思源宋体（中文标题）和 Cormorant Garamond（英文标题），SIL 开源字体许可；Google Fonts 按需只下载用到的字 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet" />
   <style>
     :root {
       --ink: #fdfaf4;
@@ -12,9 +16,13 @@
       --line: rgba(253, 250, 244, 0.35);
       --accent: #f0b46a;
       --danger: #e0664f;
-      --serif: "Songti SC", "Noto Serif SC", "Source Han Serif SC", serif;
+      --serif: "Noto Serif SC", "Songti SC", "Source Han Serif SC", serif;
       --sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     }
+    body.lang-en { --serif: "Cormorant Garamond", "Noto Serif SC", Georgia, serif; }
+    body.lang-en #age { font-size: 48px; font-weight: 600; }
+    body.lang-en .ending-lines p { font-size: 21px; }
+    body.lang-en .ending-lines p.first { font-size: 38px; font-style: italic; font-weight: 500; }
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: #1a1512; color: var(--ink); font-family: var(--sans); }
     #app canvas { display: block; }
@@ -77,8 +85,6 @@
     .ending-lines p.first { font-size: 34px; font-weight: 600; margin-bottom: 26px; letter-spacing: 0.04em; }
     .ending-lines p.on { opacity: 1; transform: none; }
     .ending-lines.dim p.on { opacity: 0.55; transition-duration: 4s; }
-    .ending-hint { margin-top: 18px; font-size: 13px; color: var(--ink-dim); opacity: 0; transition: opacity 2s; }
-    .ending-hint.on { opacity: 1; }
     body.ending-playing #caption, body.ending-playing #labels, body.ending-playing #help, body.ending-playing #timeline { opacity: 0 !important; pointer-events: none; }   /* 字幕的透明度是逐帧写在行内样式里的 */
     #labels, #help, #timeline { transition: opacity 1.5s; }
 
@@ -132,25 +138,25 @@
   <div id="labels"></div>
   <div id="hud"><div id="era"></div><div id="age"></div></div>
   <div id="caption"><div id="caption-title"></div><div id="caption-desc"></div></div>
-  <div id="help"><kbd>空格</kbd> 暂停 · <kbd>→</kbd> 快进 · <kbd>←</kbd> 后退<br />滚轮拖动时间 · 点击时间轴跳转<br /><a id="ending-replay" href="#" onclick="return false" hidden>✦ 重播结尾<br /></a><a id="light-open" href="#" onclick="return false">☀ 光照</a> · <a id="music-toggle" href="#" onclick="return false">♪ 音乐：开</a> · <a id="credits-open" href="#" onclick="return false">来源与致谢</a></div>
-  <div id="ending" hidden><div class="ending-lines"></div><div class="ending-hint">← 往回走，每一段历史都还在那里 · 菜单里可以重播结尾</div></div>
+  <div id="help"><span class="help-keys"><kbd>空格</kbd> 暂停 · <kbd>→</kbd> 快进 · <kbd>←</kbd> 后退<br />滚轮拖动时间 · 点击时间轴跳转</span><br /><a id="ending-replay" href="#" onclick="return false" hidden>✦ 重播结尾<br /></a><a id="light-open" href="#" onclick="return false">☀ 光照</a> · <a id="music-toggle" href="#" onclick="return false">♪ 音乐：开</a> · <a id="lang-toggle" href="#" onclick="return false">English</a> · <a id="credits-open" href="#" onclick="return false">来源与致谢</a></div>
+  <div id="ending" hidden><div class="ending-lines"></div></div>
   <div id="light-panel" hidden>
     <div class="lp-modes"><button data-mode="day">白天</button><button data-mode="sunset">夕阳</button><button data-mode="night">夜晚</button></div>
-    <label><span><span id="lp-body-label">太阳</span>方位</span><input type="range" id="lp-az" min="-180" max="180" step="1" /><span id="lp-az-v" class="lp-v"></span></label>
-    <label><span>高度</span><input type="range" id="lp-el" min="2" max="70" step="1" /><span id="lp-el-v" class="lp-v"></span></label>
+    <label><span id="lp-az-label"><span id="lp-body-label">太阳</span>方位</span><input type="range" id="lp-az" min="-180" max="180" step="1" /><span id="lp-az-v" class="lp-v"></span></label>
+    <label><span id="lp-el-label">高度</span><input type="range" id="lp-el" min="2" max="70" step="1" /><span id="lp-el-v" class="lp-v"></span></label>
     <div class="lp-foot">方位 0° 是正前方的远处，180° 是镜头背后 · <a id="lp-reset" href="#" onclick="return false">恢复默认方位</a></div>
   </div>
   <div id="credits" hidden>
     <div class="credits-card">
       <button class="credits-close" data-close aria-label="关闭">×</button>
       <div class="credits-title">来源与致谢</div>
-      <p>以下化石模型来自博物馆和研究者公开发布的 3D 扫描或建模，按各自的许可证使用：</p>
+      <p id="credits-intro">以下化石模型来自博物馆和研究者公开发布的 3D 扫描或建模，按各自的许可证使用：</p>
       <ul id="credits-list"></ul>
-      <p>叠层石、卷曲藻、狄更逊水母、库克逊蕨、提塔利克鱼、鳞木、石化森林、菊石、蜥脚类足迹和辽宁古果由代码生成，形态参照已发表的标本。
+      <p id="credits-procedural">叠层石、卷曲藻、狄更逊水母、库克逊蕨、提塔利克鱼、鳞木、石化森林、菊石、蜥脚类足迹和辽宁古果由代码生成，形态参照已发表的标本。
         地貌、天空和光影同样由代码生成，背景音乐也是在浏览器里实时合成的。</p>
-      <p>领路的小猫：<a href="https://sketchfab.com/3d-models/medium-poly-cat-in-motion-3d-model-free-5c31c77904de4e458d434c167ea0f4bc" target="_blank" rel="noopener">Medium poly Cat In Motion 3d Model Free</a>
+      <p id="credits-cat">领路的小猫：<a href="https://sketchfab.com/3d-models/medium-poly-cat-in-motion-3d-model-free-5c31c77904de4e458d434c167ea0f4bc" target="_blank" rel="noopener">Medium poly Cat In Motion 3d Model Free</a>
         · iRahulRajput · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · 已修改（压缩贴图、加入走路动画）。
-        三维渲染使用 <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a>（MIT）。</p>
+        三维渲染使用 <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a>（MIT）。字体：思源宋体（Noto Serif SC）和 Cormorant Garamond（SIL 开源字体许可）。</p>
     </div>
   </div>
   <div id="timeline"><div id="tl-track"></div><div id="tl-marker"></div></div>
@@ -159,6 +165,7 @@
       <div class="file-hint-title">需要通过本地服务器打开</div>
       <p>浏览器不允许直接从文件加载 JS 模块，所以双击 index.html 会是空白。</p>
       <p>请双击同一文件夹里的 <b>start.command</b>，它会启动服务器并自动打开页面；关掉那个终端窗口就会停止。</p>
+      <p>Browsers block JS modules loaded straight from a file, so opening index.html directly shows a blank page. Double-click <b>start.command</b> in the same folder instead.</p>
     </div>
   </div>
   <script>

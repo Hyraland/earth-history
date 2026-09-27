@@ -15,6 +15,9 @@ import { createHud } from './hud.js';
 import { setupCredits } from './credits.js';
 import { createRain } from './rain.js';
 import { createMusic } from './music.js';
+import { applyStaticText, switchLanguage, takeResume, t } from './i18n.js';
+
+applyStaticText();   // 英文版：先换掉页面上固定的文字，再挂各种事件
 
 // ---- 镜头与行走参数 ----
 const CAMERA = { y: 380, z: 0, pitch: -0.36, fov: 40 };
@@ -138,6 +141,9 @@ const jump = (walkerX) => { if (endingLocked()) return; motion.jumpTo = walkerX 
 // 网址带 #站点id（例如 index.html#stegosaurus、#carnian）时，直接停在这一站前面
 const linked = STATIONS.find((s) => s.id && s.id === decodeURIComponent(location.hash.slice(1)));
 if (linked) Object.assign(motion, { scroll: linked.x - 330 - WALKER.x, paused: true });
+// 切换语言后重新载入：回到原来走到的位置
+const resume = takeResume();
+if (resume) Object.assign(motion, { scroll: resume.scroll, paused: resume.paused });
 
 window.addEventListener('keydown', (e) => {
   if (endingLocked()) { if (e.code === 'Space') e.preventDefault(); return; }
@@ -162,7 +168,7 @@ setupCredits();
 const music = createMusic();
 const musicLink = document.getElementById('music-toggle');
 const showMusic = () => {
-  musicLink.textContent = music.muted ? '♪ 音乐：关' : music.started ? '♪ 音乐：开' : '♪ 音乐：点击页面开始';
+  musicLink.textContent = music.muted ? t('♪ 音乐：关', '♪ Music: off') : music.started ? t('♪ 音乐：开', '♪ Music: on') : t('♪ 音乐：点击页面开始', '♪ Music: click to start');
 };
 showMusic();
 musicLink.addEventListener('click', (e) => {
@@ -265,10 +271,10 @@ function setupLightPanel() {
   const save = () => { try { localStorage.setItem('earth-light', JSON.stringify(light)); } catch { /* 忽略 */ } };
   const show = () => {
     az.value = light.azimuth; el.value = light.elevation;
-    azV.textContent = `${light.azimuth > 0 ? '右' : light.azimuth < 0 ? '左' : ''} ${Math.abs(light.azimuth)}°`;
+    azV.textContent = `${light.azimuth > 0 ? t('右', 'R') : light.azimuth < 0 ? t('左', 'L') : ''} ${Math.abs(light.azimuth)}°`;
     elV.textContent = `${light.elevation}°`;
     buttons.forEach((b) => b.classList.toggle('on', b.dataset.mode === light.mode));
-    document.getElementById('lp-body-label').textContent = light.mode === 'night' ? '月亮' : '太阳';
+    document.getElementById('lp-body-label').textContent = light.mode === 'night' ? t('月亮', 'Moon') : t('太阳', 'Sun');
   };
   buttons.forEach((b) => b.addEventListener('click', () => {
     light.mode = b.dataset.mode;
@@ -288,23 +294,32 @@ function setupLightPanel() {
 }
 const refreshLightPanel = setupLightPanel();
 
+// 中英文切换
+document.getElementById('lang-toggle').addEventListener('click', (e) => { e.stopPropagation(); switchLanguage(motion); });
+
 // ---- 结尾：走到"现在"时，天黑下来，镜头慢慢抬头望向银河，结束语一行行浮现，像展览的尾声 ----
 // 第一次走到这里时自动播放，播放时锁住操作，播完把操作还给观众；看过一次之后不再自动播放，
 // 菜单里出现"重播结尾"。往回走一段后，恢复观众原来选的光照。
 const END_X = WALK_LENGTH;
-const ENDING_LINES = [
+const ENDING_LINES = t([
   '你走到了今天。',
   '四十六亿年里，这颗星球冷却、下雨、冰封，又开满了花。',
   '五次大灭绝之后，生命每一次都重新开始。',
   '如果把这四十六亿年压缩成一天，智人出现在午夜前的最后六秒。',
   '我们身体里的碳、氧和铁，都诞生在比太阳更古老的恒星里。',
   '谢谢你走完这段路。',
-];
+], [
+  'You have reached today.',
+  'For 4.6 billion years this planet cooled, rained, froze, and burst into flower.',
+  'After five mass extinctions, life began again every time.',
+  'Squeeze those 4.6 billion years into a single day, and our species appears in the last six seconds before midnight.',
+  'The carbon, oxygen and iron in our bodies were forged in stars older than the Sun.',
+  'Thank you for walking this far.',
+]);
 const ending = { state: 'idle', t: 0, lift: 0, saved: null, pending: false, seen: false };
 try { ending.seen = localStorage.getItem('earth-ending-seen') === '1'; } catch { /* 当作没看过 */ }
 const endingEl = document.getElementById('ending');
 const endingLines = endingEl.querySelector('.ending-lines');
-const endingHint = endingEl.querySelector('.ending-hint');
 const replayLink = document.getElementById('ending-replay');
 ENDING_LINES.forEach((text, i) => {
   const p = document.createElement('p');
@@ -323,7 +338,6 @@ function startEnding() {
   Object.assign(motion, { jumpTo: END_X - WALKER.x, paused: true, right: false, left: false });
   [...endingLines.children].forEach((p) => p.classList.remove('on'));
   endingLines.classList.remove('dim');
-  endingHint.classList.remove('on');
   endingEl.hidden = false;
   document.body.classList.add('ending-playing');
   document.getElementById('light-panel').hidden = true;
@@ -334,7 +348,6 @@ function finishEnding() {
   ending.state = 'done';
   document.body.classList.remove('ending-playing');
   endingLines.classList.add('dim');
-  endingHint.classList.add('on');
   walker.setGazeUp(0);
   ending.seen = true;
   try { localStorage.setItem('earth-ending-seen', '1'); } catch { /* 忽略 */ }

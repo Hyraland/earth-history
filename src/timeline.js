@@ -1,6 +1,8 @@
 // 地球历史时间轴：展品、地球事件、地质年代与"世界坐标 ↔ 年代"的换算。
 // 年代单位统一为 Ma（百万年前）。
 
+import { EN } from './i18n.js';
+
 // ---- 站点：按时间顺序排列。展品之间留更长的路，事件之间留短一点 ----
 // kind: 'exhibit' 展品 | 'event' 地球事件 | 'extinction' 大灭绝 | 'start' / 'end'
 export const STATIONS = [
@@ -69,6 +71,68 @@ export const STATIONS = [
   { kind: 'end', age: 0, name: '现在', desc: '' },   // 结束语在结尾的星空里（main.js 的 ENDING_LINES）
 ];
 
+// ---- 英文版的站点文字（按 id，没有 id 的按年代） ----
+const STATION_EN = {
+  4600: { name: 'Earth forms', desc: 'A magma ocean slowly cools, and the first crust begins to form.' },
+  stromatolite: { name: 'Stromatolite', milestone: 'The earliest life',
+    desc: 'Domes built layer upon layer as microbial mats trapped and bound sediment — some of the oldest evidence of life on Earth.' },
+  2400: { name: 'Great Oxidation Event',
+    desc: 'Oxygen released by photosynthetic microbes begins to build up in the air. Iron in seawater rusts out and settles as red-and-black banded iron formations.' },
+  grypania: { name: 'Grypania', milestone: 'Complex cells appear', desc: 'A coiled ribbon visible to the naked eye — possibly one of the earliest eukaryotic algae.' },
+  720: { name: 'Snowball Earth', desc: 'Glaciers may have reached the equator, covering almost the whole planet in ice for tens of millions of years.' },
+  dickinsonia: { name: 'Dickinsonia', milestone: 'The first complex animals',
+    desc: 'A flat, segmented oval creature. Cholesterol molecules preserved in its fossils show that it was an animal.' },
+  trilobite: { name: 'Trilobite', milestone: 'The Cambrian explosion',
+    desc: 'Among the first animals with complex eyes, trilobites thrived in the seas for nearly 300 million years.' },
+  445: { name: 'End-Ordovician extinction', desc: 'An ice age sets in and sea levels plunge; about 85% of marine species disappear.' },
+  cooksonia: { name: 'Cooksonia', milestone: 'Plants move onto land',
+    desc: 'Branching stems only a few centimetres tall, tipped with spore capsules — one of the earliest vascular plants.' },
+  tiktaalik: { name: 'Tiktaalik', milestone: 'From water onto land',
+    desc: 'With a neck and fins strong enough to prop up its body, it sits between fish and four-legged animals.' },
+  372: { name: 'Late Devonian extinction', desc: 'The oceans lose their oxygen over vast areas, and reef ecosystems collapse.' },
+  dunkleosteus: { name: 'Dunkleosteus', milestone: 'Jawed fish take over',
+    desc: 'A placoderm about four metres long with a heavily armoured head — top predator of the Devonian "Age of Fishes".' },
+  lepidodendron: { name: 'Lepidodendron', milestone: 'The first great forests',
+    desc: 'Club-moss trees over 30 metres tall, their bark covered in diamond-shaped leaf scars. The remains of Carboniferous forests became today\'s coal.' },
+  diictodon: { name: 'Diictodon', milestone: 'The distant line of mammals',
+    desc: 'A small plant-eating synapsid of the late Permian with a single pair of tusks, living in burrows. Synapsids are not dinosaurs — they are closer relatives of mammals.' },
+  252: { name: 'End-Permian extinction',
+    desc: 'Huge volcanic eruptions in Siberia wipe out more than 80% of marine species — the worst extinction in Earth\'s history.' },
+  thrinaxodon: { name: 'Thrinaxodon', milestone: 'Survivor of the Great Dying',
+    desc: 'One of the first survivors after the end-Permian extinction, often found curled up in its own burrow. It already had differentiated teeth and a secondary palate for breathing while chewing — a close relative of mammals. Collected by J. W. Kitching in South Africa in 1961; Smithsonian National Museum of Natural History.' },
+  carnian: { name: 'Carnian Pluvial Episode',
+    desc: 'It rained over Pangaea for one to two million years. The dry interior turned humid and plants and animals were reshuffled — and when the rain stopped, dinosaurs spread rapidly across every continent.' },
+  petrified: { name: 'Petrified Forest', milestone: 'Forests of Pangaea',
+    desc: 'Great conifers felled by floods were buried in river sand and volcanic ash, and their wood was replaced by silica — agate and jasper. The brittle logs broke into rounds, their cross-sections stained red, yellow and purple by iron and manganese. Petrified Forest National Park, Arizona.' },
+  201: { name: 'End-Triassic extinction', desc: 'The Central Atlantic Magmatic Province erupts. After the catastrophe, dinosaurs rise to rule the land.' },
+  ammonite: { name: 'Ammonite', milestone: 'Mesozoic seas',
+    desc: 'An Early Jurassic ammonite with strong, straight ribs and a keel along its outer edge. Ammonites evolved fast and spread widely, which makes them geologists\' "clocks" for dating rock layers.' },
+  ichthyosaur: { name: 'Stenopterygius', milestone: 'Reptiles return to the sea',
+    desc: 'A complete skeleton from the black shales of Holzmaden, Germany. Ichthyosaurs descended from land reptiles that returned to the sea in the Early Triassic, evolving a streamlined, dolphin-like body.' },
+  trackway: { name: 'Sauropod trackway', milestone: 'Dinosaurs rule the land',
+    desc: 'A giant sauropod crossed a wet mudflat: its hind feet left great round basins, its front feet smaller horseshoe prints. The three-toed tracks of a theropod cut across at an angle. Footprints capture a moment when the dinosaurs were alive.' },
+  stegosaurus: { name: 'Stegosaurus', milestone: 'Giants of the Jurassic',
+    desc: 'Two rows of alternating plates on its back and four spikes at the end of its tail — the most famous plant-eater of the Late Jurassic Morrison Formation. This skeleton is on display at the Denver Museum of Nature & Science.' },
+  archaeopteryx: { name: 'Archaeopteryx', milestone: 'The origin of birds',
+    desc: 'Feathers and wings, but also teeth and a long bony tail — a link between dinosaurs and birds.' },
+  archaefructus: { name: 'Archaefructus', milestone: 'Flowering plants appear',
+    desc: 'Its seeds were enclosed in carpels, making it one of the earliest known flowering plants.' },
+  triceratops: { name: 'Triceratops', milestone: 'The end of the age of dinosaurs',
+    desc: 'One of the last non-avian dinosaurs, living alongside Tyrannosaurus. This skeleton was collected in Wyoming by J. B. Hatcher in 1890; Smithsonian National Museum of Natural History.' },
+  66: { name: 'End-Cretaceous extinction', desc: 'An asteroid strikes Chicxulub; the non-avian dinosaurs vanish along with the ammonites.' },
+  cetotherium: { name: 'Cetotherium', milestone: 'Mammals in the sea',
+    desc: 'A small Miocene baleen whale that filtered its food through baleen. Whales descend from land-dwelling even-toed hoofed mammals and returned to the sea only about 50 million years ago. This skeleton is held by the National Museum of Natural History of Ukraine.' },
+  lucy: { name: 'Lucy', milestone: 'Walking upright',
+    desc: 'Her pelvis and leg bones show that she walked upright, while her brain was still about the size of a chimpanzee\'s.' },
+  2.58: { name: 'Quaternary ice ages', desc: 'Ice sheets advance and retreat in cycles; glacial and interglacial periods begin to alternate.' },
+  mammoth: { name: 'Woolly mammoth', milestone: 'The Last Glacial Maximum',
+    desc: 'Its tusks could grow four metres long. Mammoths shared the frozen steppes with early humans.' },
+  cuneiform: { name: 'Cuneiform tablet', latin: 'Ur III period · 21st century BCE', milestone: 'Writing and cities',
+    desc: 'About 5,200 years ago, writing appeared almost at the same time at Uruk in Mesopotamia and in Egypt, and humans began to write down their own story — prehistory became history. This tablet, from a thousand years later under the kings of Ur, is a barley account: who drew how much barley from which field\'s store, and when. Rijksmuseum van Oudheden, Leiden.' },
+  0: { name: 'Present' },
+};
+if (EN) STATIONS.forEach((s) => Object.assign(s, STATION_EN[s.id ?? s.age]));
+
 // 每类站点占用的"半宽"——相邻两站的距离 = 两者半宽之和
 const HALF_SPACING = { exhibit: 720, event: 400, extinction: 400, start: 260, end: 460 };
 
@@ -114,22 +178,22 @@ export function xAtAge(age) {
 
 // ---- 地质年代表（起始年代，Ma） ----
 const EONS = [
-  [4600, '冥古宙'], [4000, '太古宙'], [2500, '元古宙'], [538.8, '显生宙'],
+  [4600, '冥古宙', 'Hadean'], [4000, '太古宙', 'Archean'], [2500, '元古宙', 'Proterozoic'], [538.8, '显生宙', 'Phanerozoic'],
 ];
 const ERAS = [
-  [2500, '古元古代'], [1600, '中元古代'], [1000, '新元古代'],
-  [538.8, '古生代'], [251.9, '中生代'], [66, '新生代'],
+  [2500, '古元古代', 'Paleoproterozoic'], [1600, '中元古代', 'Mesoproterozoic'], [1000, '新元古代', 'Neoproterozoic'],
+  [538.8, '古生代', 'Paleozoic'], [251.9, '中生代', 'Mesozoic'], [66, '新生代', 'Cenozoic'],
 ];
 const PERIODS = [
-  [1000, '拉伸纪'], [720, '成冰纪'], [635, '埃迪卡拉纪'],
-  [538.8, '寒武纪'], [485.4, '奥陶纪'], [443.8, '志留纪'], [419.2, '泥盆纪'],
-  [358.9, '石炭纪'], [298.9, '二叠纪'], [251.9, '三叠纪'], [201.4, '侏罗纪'],
-  [145, '白垩纪'], [66, '古近纪'], [23.03, '新近纪'], [2.58, '第四纪'],
+  [1000, '拉伸纪', 'Tonian'], [720, '成冰纪', 'Cryogenian'], [635, '埃迪卡拉纪', 'Ediacaran'],
+  [538.8, '寒武纪', 'Cambrian'], [485.4, '奥陶纪', 'Ordovician'], [443.8, '志留纪', 'Silurian'], [419.2, '泥盆纪', 'Devonian'],
+  [358.9, '石炭纪', 'Carboniferous'], [298.9, '二叠纪', 'Permian'], [251.9, '三叠纪', 'Triassic'], [201.4, '侏罗纪', 'Jurassic'],
+  [145, '白垩纪', 'Cretaceous'], [66, '古近纪', 'Paleogene'], [23.03, '新近纪', 'Neogene'], [2.58, '第四纪', 'Quaternary'],
 ];
 
 function pick(table, age) {
   let found = null;
-  for (const [start, name] of table) if (age <= start) found = name;
+  for (const [start, zh, en] of table) if (age <= start) found = EN ? en : zh;
   return found;
 }
 
@@ -137,8 +201,18 @@ export function geoNames(age) {
   return [pick(EONS, age), pick(ERAS, age), pick(PERIODS, age)].filter(Boolean);
 }
 
-// 年代 → 中文读法："35 亿年前" / "320 万年前" / "2 万年前"
+// 年代 → 读法。中文："35 亿年前" / "320 万年前" / "2 万年前"；英文："3.5 billion years ago" / "3.2 million years ago" / "20,000 years ago"。
+// short：时间轴刻度上的简写（不带"前"/"years ago"）
+const trim = (v, digits) => Number(v.toFixed(digits));
 export function formatAge(age, { suffix = '前' } = {}) {
+  if (EN) {
+    const short = suffix === '';
+    if (age <= 0.0005) return short ? 'Now' : 'Present';
+    // 时间轴刻度用地质学的缩写：Ga = 十亿年前，Ma = 百万年前
+    if (age >= 1000) return short ? `${trim(age / 1000, 2)} Ga` : `${trim(age / 1000, 2)} billion years ago`;
+    if (age >= 1) { const m = age >= 100 ? Math.round(age) : trim(age, age >= 10 ? 1 : 2); return short ? `${m} Ma` : `${m} million years ago`; }
+    return `${Math.round(age * 1e6).toLocaleString('en-US')}${short ? ' years' : ' years ago'}`;
+  }
   if (age <= 0.0005) return '现在';
   if (age >= 100) {
     const yi = age / 100;

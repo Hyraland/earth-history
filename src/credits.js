@@ -2,6 +2,7 @@
 
 import { EXHIBITS } from './timeline.js';
 import { SCANS } from './exhibits/scan.js';
+import { EN, t } from './i18n.js';
 
 export function setupCredits() {
   const panel = document.getElementById('credits');
@@ -16,13 +17,14 @@ export function setupCredits() {
     title.href = c.url;
     title.target = '_blank';
     title.rel = 'noopener';
-    title.textContent = c.title;
+    title.textContent = (EN && c.titleEn) || c.title;
     const lic = document.createElement('a');
     lic.href = c.licenseUrl;
     lic.target = '_blank';
     lic.rel = 'noopener';
     lic.textContent = c.license;
-    li.append(`${names[e.id]}：`, title, ` · ${c.by} · `, lic, c.modified ? ' · 已修改（清理碎片、减面、压缩、调整朝向和尺寸）' : '');
+    li.append(`${names[e.id]}${t('：', ': ')}`, title, ` · ${c.by} · `, lic,
+      c.modified ? t(' · 已修改（清理碎片、减面、压缩、调整朝向和尺寸）', ' · modified (cleaned, decimated, compressed, re-oriented and scaled)') : '');
     list.appendChild(li);
   }
 

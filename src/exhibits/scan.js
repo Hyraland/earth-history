@@ -50,7 +50,7 @@ export const SCANS = {
   stegosaurus: {
     file: 'stegosaurus.glb', size: 620, orient: [0.061, 0, 0.205], yaw: Math.PI / 2 - 0.35, sink: 0.03,   // orient：扫描本身向一侧歪了约 12°，按四只脚拟合的平面转正
     mottle: { dark: '#381304', mid: '#703c1b', light: '#c08446' },
-    credit: { ...BY4, by: 'Artec 3D', title: 'Stegosaurus Skeleton（丹佛自然与科学博物馆展出骨架，Triebold Paleontology 扫描）', url: 'https://sketchfab.com/3d-models/stegosaurus-skeleton-dc6e1c748484449587b81426d41da6cb' },
+    credit: { ...BY4, by: 'Artec 3D', title: 'Stegosaurus Skeleton（丹佛自然与科学博物馆展出骨架，Triebold Paleontology 扫描）', titleEn: 'Stegosaurus Skeleton (mounted skeleton at the Denver Museum of Nature & Science, scanned by Triebold Paleontology)', url: 'https://sketchfab.com/3d-models/stegosaurus-skeleton-dc6e1c748484449587b81426d41da6cb' },
   },
   triceratops: {
     // 绕身体长轴再转 -0.56：在直立（-0.3）的基础上，背部再朝远处转约 15°
@@ -74,12 +74,12 @@ export const SCANS = {
   // 露西：骨骼按博物馆陈列的方式平摊，头朝行走方向，半埋在地里；模型没有颜色贴图，配化石骨骼的颜色
   lucy: {
     file: 'lucy.glb', size: 600, orient: [-Math.PI / 2, 0, 0], yaw: -Math.PI / 2, color: '#d2b48a', sink: 0.3,
-    credit: { ...BY4, by: 'JackalopeODDsENDs', title: '"Lucy" Australopithecus afarensis; AL 288-1（据标本照片建模）', url: 'https://sketchfab.com/3d-models/lucy-australopithecus-afarensis-al-288-1-9f6c06b0a4e54890a87486e414b8cb0d' },
+    credit: { ...BY4, by: 'JackalopeODDsENDs', title: '"Lucy" Australopithecus afarensis; AL 288-1（据标本照片建模）', titleEn: '"Lucy" Australopithecus afarensis; AL 288-1 (modelled from photographs of the specimen)', url: 'https://sketchfab.com/3d-models/lucy-australopithecus-afarensis-al-288-1-9f6c06b0a4e54890a87486e414b8cb0d' },
   },
   // 楔形文字泥板：正面（写满文字的一面）朝上平放，文字的行从左到右，朝镜头略微翘起
   cuneiform: {
     file: 'cuneiform.glb', size: 440, orient: [-Math.PI / 2, 0, 0], yaw: 0, tilt: 0.3, sink: 0.35, brighten: 1.1,
-    credit: { ...CC0, by: 'Rijksmuseum van Oudheden (Leiden)', title: 'Kleitablet met een administratieve tekst（乌尔第三王朝，公元前 21 世纪）', url: 'https://sketchfab.com/3d-models/kleitablet-met-een-administratieve-tekst-d7edb9af70e24cebb7f93480cac262d0' },
+    credit: { ...CC0, by: 'Rijksmuseum van Oudheden (Leiden)', title: 'Kleitablet met een administratieve tekst（乌尔第三王朝，公元前 21 世纪）', titleEn: 'Kleitablet met een administratieve tekst (Ur III, 21st century BCE)', url: 'https://sketchfab.com/3d-models/kleitablet-met-een-administratieve-tekst-d7edb9af70e24cebb7f93480cac262d0' },
   },
   mammoth: {
     file: 'mammoth.glb', size: 510, yaw: Math.PI / 2 - 0.3, color: '#9c7c5a',
