@@ -227,6 +227,7 @@ export function formatAge(age, { suffix = '前' } = {}) {
 // a / b 岩土色，v 植被色，wc 水色（sRGB）
 // veg 植被覆盖，tree 乔木比例（0 草地/苔原，1 森林），water 浅水/潮坪/沼泽，lava 熔岩，
 // ice 冰雪，dunes 沙丘，cracks 龟裂，rock 层状岩床露头
+// flowers 草地上的野花（中新世草原扩张之后才有，全新世最多），blossom 开花的树（白垩纪中期开花植物扩张之后）
 export const GROUND_PALETTE = [
   // 冥古宙：黑色玄武岩结壳，裂缝和熔岩湖发光
   { age: 4600, a: '#1f1917', b: '#3b2e28', lava: 1, cracks: 1, rock: 0.1 },
@@ -254,14 +255,16 @@ export const GROUND_PALETTE = [
   { age: 201.4, a: '#bd966e', b: '#e2c89f', v: '#38563a', veg: 0.45, tree: 0.85, wc: '#2b6070', water: 0.12, rock: 0.4 },
   // 白垩纪：白垩与开花植物带来的更鲜亮的绿
   { age: 145, a: '#b3ab96', b: '#e1dbc9', v: '#46703a', veg: 0.6, tree: 0.8, wc: '#2c6878', water: 0.2, rock: 0.2 },
+  // 白垩纪中期：开花植物迅速扩张，林间有木兰一类的开花乔木和灌木（还没有草地，所以没有花海）
+  { age: 100, a: '#b3ab96', b: '#e1dbc9', v: '#46703a', veg: 0.62, tree: 0.8, wc: '#2c6878', water: 0.2, rock: 0.2, blossom: 0.6 },
   // 古近纪：温暖湿润，森林茂密
-  { age: 66, a: '#86705a', b: '#b39a78', v: '#3b6630', veg: 0.82, tree: 1, wc: '#2d5c62', water: 0.1 },
-  // 新近纪：草原扩张
-  { age: 23.03, a: '#978659', b: '#c2b07a', v: '#96994c', veg: 0.72, tree: 0.12, rock: 0.15 },
+  { age: 66, a: '#86705a', b: '#b39a78', v: '#3b6630', veg: 0.82, tree: 1, wc: '#2d5c62', water: 0.1, blossom: 0.3 },
+  // 新近纪：草原扩张，第一次有了开满野花的草原
+  { age: 23.03, a: '#978659', b: '#c2b07a', v: '#96994c', veg: 0.72, tree: 0.12, rock: 0.15, flowers: 0.35 },
   // 第四纪：冰盖、冻土与苔原
-  { age: 2.58, a: '#8b9288', b: '#d9dfe2', v: '#6f7a5c', veg: 0.2, tree: 0.25, ice: 0.6, cracks: 0.3 },
+  { age: 2.58, a: '#8b9288', b: '#d9dfe2', v: '#6f7a5c', veg: 0.2, tree: 0.25, ice: 0.6, cracks: 0.3, flowers: 0.15 },   // 冰期草原的夏天也开花
   // 全新世：冰期结束
-  { age: 0.0117, a: '#8a775a', b: '#c0a37c', v: '#627a3a', veg: 0.55, tree: 0.5, wc: '#2d5c6a', water: 0.1, rock: 0.25 },
+  { age: 0.0117, a: '#8a775a', b: '#c0a37c', v: '#627a3a', veg: 0.55, tree: 0.5, wc: '#2d5c6a', water: 0.1, rock: 0.25, flowers: 0.85, blossom: 0.2 },   // 间冰期：花海
 ];
 
 // ---- 天空：按年代的关键帧（sRGB） ----

@@ -149,17 +149,18 @@ varying vec3 vNw;
 varying float vMtn;
 varying vec4 vMP;
 
-struct Era { vec3 a; vec3 b; vec3 v; vec3 wc; vec4 p1; vec4 p2; };
+struct Era { vec3 a; vec3 b; vec3 v; vec3 wc; vec4 p1; vec4 p2; vec4 p3; };
 
 Era eraAt(float x) {
   float u = clamp(x / uWalkLen, 0.0, 1.0);
   Era e;
-  e.a = texture2D(uEra, vec2(u, 0.5 / 6.0)).rgb;
-  e.b = texture2D(uEra, vec2(u, 1.5 / 6.0)).rgb;
-  e.v = texture2D(uEra, vec2(u, 2.5 / 6.0)).rgb;
-  e.wc = texture2D(uEra, vec2(u, 3.5 / 6.0)).rgb;
-  e.p1 = texture2D(uEra, vec2(u, 4.5 / 6.0));
-  e.p2 = texture2D(uEra, vec2(u, 5.5 / 6.0));
+  e.a = texture2D(uEra, vec2(u, 0.5 / 7.0)).rgb;
+  e.b = texture2D(uEra, vec2(u, 1.5 / 7.0)).rgb;
+  e.v = texture2D(uEra, vec2(u, 2.5 / 7.0)).rgb;
+  e.wc = texture2D(uEra, vec2(u, 3.5 / 7.0)).rgb;
+  e.p1 = texture2D(uEra, vec2(u, 4.5 / 7.0));
+  e.p2 = texture2D(uEra, vec2(u, 5.5 / 7.0));
+  e.p3 = texture2D(uEra, vec2(u, 6.5 / 7.0));
   return e;
 }
 
@@ -239,6 +240,24 @@ void groundSurface(vec2 w, Era e, out vec3 col, out float h, out float rough, ou
   col = mix(col, grass, grassCover * (1.0 - tree) * 0.9);
   col = mix(col, canopy, treeCover * tree);
   h += treeCover * tree * crown * 3.0;
+
+  // 花：草地上一片片的野花（黄、白、紫、红，远看是带颜色的花海，近看是细碎的花点）；林冠上点缀开花的树
+  float flowers = e.p3.x, blossom = e.p3.y;
+  if (flowers + blossom > 0.001) {
+    vec4 d3 = texture2D(uDet, w / 37.0 + vec2(0.21, 0.83));
+    // 花丛：一团团的，中间留着绿草；花丛里是细碎的花点，不是铺满的一片
+    float drift = smoothstep(0.64 - 0.26 * flowers, 0.76 - 0.22 * flowers, texture2D(uDet, w / 520.0 + vec2(0.6, 0.1)).r + 0.2 * meso);
+    float speck = smoothstep(0.45, 0.68, d3.r) * smoothstep(0.2, 0.5, texture2D(uDet, w / 9.0 + vec2(0.4, 0.2)).r);
+    float fl = min(1.0, flowers * 1.2) * grassCover * (1.0 - treeCover * tree) * drift * speck;
+    float hue = texture2D(uDet, w / 1500.0 + vec2(0.33, 0.77)).r + (d3.a - 0.5) * 0.18;
+    vec3 fc = hue < 0.46 ? vec3(0.9, 0.58, 0.04)          // 黄：毛茛、蒲公英
+            : hue < 0.6 ? vec3(0.86, 0.86, 0.8)           // 白：雏菊
+            : hue < 0.72 ? vec3(0.36, 0.16, 0.6)          // 紫：羽扇豆、风铃草
+            : vec3(0.7, 0.06, 0.03);                      // 红：虞美人（少一些）
+    col = mix(col, fc * (0.85 + 0.35 * d3.g), fl * 0.95);
+    float bl = blossom * treeCover * tree * smoothstep(0.55, 0.8, d3.b) * step(0.5, fract(d1.a * 13.7));
+    col = mix(col, mix(vec3(0.88, 0.5, 0.6), vec3(0.9, 0.88, 0.84), step(0.5, fract(d1.a * 5.1))), bl * 0.75);   // 木兰一类：粉、白
+  }
 
   // 辫状河道：湿润的年代有水，干旱的年代是浅色的干河床
   float chan = max(smoothstep(0.7, 0.9, m1.b), smoothstep(0.83, 0.95, m1.a) * 0.8) * (1.0 - ice * 0.7);
