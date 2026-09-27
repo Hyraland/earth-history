@@ -41,8 +41,8 @@ float ellipse(vec2 p, vec2 c, vec2 r, float ang) {
 `;
 
 // 石板外形：边缘略微崩缺，四周有倒角
-function slabGeometry(width, depth, thickness, relief, heights, hw, hh, seed) {
-  const N = 320, M = Math.round((N * depth) / width);
+function slabGeometry(width, depth, thickness, relief, heights, hw, hh, seed, grid) {
+  const N = grid, M = Math.round((N * depth) / width);
   const sample = (u, v) => {
     const x = Math.min(hw - 1, Math.max(0, u * (hw - 1)));
     const y = Math.min(hh - 1, Math.max(0, v * (hh - 1)));
@@ -102,7 +102,7 @@ function slabGeometry(width, depth, thickness, relief, heights, hw, hh, seed) {
 }
 
 export function buildSlab(renderer, {
-  width, depth, thickness = 26, relief = 40, surface, uniforms = {}, defines = '', side = '#6f6456', res = 1024, seed = 1,
+  width, depth, thickness = 26, relief = 40, surface, uniforms = {}, defines = '', side = '#6f6456', res = 1024, seed = 1, grid = 320,
 }) {
   const u = { ...uniforms, uOut: { value: 0 }, uSize: { value: new THREE.Vector2(width, depth) } };
   const fragment = `${defines}\n${SLAB_GLSL}\n${surface}
@@ -120,7 +120,7 @@ void main() {
   const px = new Uint8Array(hw * hh * 4);
   renderer.readRenderTargetPixels(height.rt, 0, 0, hw, hh, px);
 
-  const { topGeo, sideGeo } = slabGeometry(width, depth, thickness, relief, px, hw, hh, seed);
+  const { topGeo, sideGeo } = slabGeometry(width, depth, thickness, relief, px, hw, hh, seed, grid);
   const topMat = new THREE.MeshStandardMaterial({
     map: color.texture, bumpMap: height.texture, bumpScale: 1.5, roughness: 0.88,
   });

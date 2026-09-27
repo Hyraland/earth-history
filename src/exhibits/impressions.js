@@ -9,6 +9,9 @@ import * as THREE from 'three';
 import { buildSlab } from './slab.js';
 import { placeOnGround } from './place.js';
 
+// 石板平放在地上，下部埋进地里：地面有缓起伏，埋一些才不会有悬空的边
+const FLAT = (yaw) => ({ yaw, sink: 0.35 });
+
 // 可重复的伪随机数
 function rng(seed) {
   let s = seed >>> 0;
@@ -16,45 +19,48 @@ function rng(seed) {
 }
 
 // ---------------------------------------------------------------- 狄更逊水母
+// 参照 Dickinsonia costata 的标本照片：每侧约 60 多道细密的节片，中段垂直于中线，
+// 靠近两端逐渐散开成扇形；左右两侧错开半节；中线是一道细脊，边缘有一圈隆起的轮廓；身体本身很平。
 const DICKINSONIA = /* glsl */ `
 uniform vec4 uSpec[2];     // 中心 xy、体长、朝向
-float dickinsonia(vec2 p, vec4 s, out float groove, out float inside) {
+void dickinsonia(vec2 p, vec4 s, out float relief, out float groove, out float inside) {
   vec2 q = p - s.xy;
   float cs = cos(s.w), sn = sin(s.w);
   q = vec2(cs * q.x + sn * q.y, -sn * q.x + cs * q.y);
-  float a = s.z * 0.5, b = s.z * 0.38;
-  float e = length(q / vec2(a, b));
-  inside = 1.0 - smoothstep(0.96, 1.02, e);
-  float yn = q.y / b;
-  // 节片从中线伸向边缘，向后弯；左右两侧错开半节
-  float xs = q.x / a + 0.22 * yn * yn;
-  float seg = (xs * 0.5 + 0.5) * 22.0 + (yn < 0.0 ? 0.5 : 0.0);
-  float f = fract(seg);
-  float segGroove = (1.0 - smoothstep(0.02, 0.22, min(f, 1.0 - f))) * smoothstep(0.04, 0.12, abs(yn)) * smoothstep(1.0, 0.85, e);
-  float mid = 1.0 - smoothstep(0.0, 0.035, abs(yn));
-  groove = max(segGroove, mid * smoothstep(-0.9, -0.7, q.x / a)) * inside;
-  return inside * sqrt(max(0.0, 1.0 - e * e));
+  vec2 n = q / vec2(s.z * 0.5, s.z * 0.36);
+  float e = length(n);
+  inside = 1.0 - smoothstep(0.97, 1.0, e);
+  // 节片的走向：中段垂直于中线，越靠两端越向外散开，并整体略向后弯
+  float f = n.x * (1.0 - 0.7 * n.y * n.y) + 0.1 * n.y * n.y;
+  float seg = (f * 0.5 + 0.5) * 64.0 + (n.y < 0.0 ? 0.5 : 0.0);
+  float ridge = pow(0.5 + 0.5 * cos(seg * 6.2831853), 1.6);
+  float segMask = smoothstep(0.02, 0.07, abs(n.y)) * (1.0 - smoothstep(0.9, 0.97, e));
+  float mid = (1.0 - smoothstep(0.0, 0.022, abs(n.y))) * (1.0 - smoothstep(0.85, 0.95, abs(n.x)));
+  float midGroove = (1.0 - smoothstep(0.022, 0.05, abs(abs(n.y) - 0.035))) * (1.0 - smoothstep(0.85, 0.95, abs(n.x)));
+  float rim = smoothstep(0.9, 0.965, e) * (1.0 - smoothstep(0.985, 1.04, e));
+  relief = inside * (ridge * segMask * 0.045 - 0.012) + mid * 0.04 + rim * 0.055;
+  groove = inside * ((1.0 - ridge) * segMask + midGroove * 0.8);
 }
 void surface(vec2 p, out vec3 col, out float h) {
-  col = rock(p, vec3(0.60, 0.46, 0.33), vec3(0.80, 0.68, 0.52), h);      // 埃迪卡拉石英砂岩
+  col = rock(p, vec3(0.52, 0.38, 0.30), vec3(0.68, 0.53, 0.42), h);      // 埃迪卡拉纪的红褐色砂岩
   float stain = smoothstep(0.55, 0.75, f1(p * 0.02 + 7.0));
-  col = mix(col, col * vec3(0.86, 0.62, 0.46), stain * 0.6);              // 铁质浸染
+  col = mix(col, col * vec3(0.78, 0.66, 0.6), stain * 0.5);                // 深色的铁锰斑
   for (int i = 0; i < 2; i++) {
-    float g, inside;
-    float d = dickinsonia(p, uSpec[i], g, inside);
-    h += d * 0.14 - g * 0.07;
-    col = mix(col, col * vec3(0.92, 0.8, 0.72), inside * 0.4);
-    col *= 1.0 - g * 0.22;
+    float r, g, inside;
+    dickinsonia(p, uSpec[i], r, g, inside);
+    h += r;
+    col *= 1.0 - g * 0.18 - inside * 0.05;
+    col *= 1.0 + r * 1.5;
   }
 }`;
 
 export function buildDickinsonia(exhibit, { renderer }) {
   const slab = buildSlab(renderer, {
-    width: 440, depth: 330, relief: 42, seed: 3, side: '#8a6f55',
+    width: 440, depth: 330, relief: 42, seed: 3, side: '#7a5c48', res: 2048, grid: 460,
     surface: DICKINSONIA,
-    uniforms: { uSpec: { value: [new THREE.Vector4(-40, 15, 250, 0.12), new THREE.Vector4(130, -85, 90, -0.7)] } },
+    uniforms: { uSpec: { value: [new THREE.Vector4(-30, 15, 270, 0.1), new THREE.Vector4(135, -95, 80, -0.7)] } },
   });
-  return placeOnGround(slab, { yaw: -0.08, tilt: 0.12 });
+  return placeOnGround(slab, FLAT(-0.08));
 }
 
 // ---------------------------------------------------------------- 卷曲藻
@@ -96,7 +102,7 @@ export function buildGrypania(exhibit, { renderer }) {
     surface: GRYPANIA, defines: `#define COILS ${coils.length}`,
     uniforms: { uCoil: { value: coils } },
   });
-  return placeOnGround(slab, { yaw: 0.05, tilt: 0.12 });
+  return placeOnGround(slab, FLAT(0.05));
 }
 
 // ---------------------------------------------------------------- 植物：线段 + 椭圆
@@ -183,7 +189,7 @@ export function buildCooksonia(exhibit, { renderer }) {
   const slab = buildSlab(renderer, {
     width: 440, depth: 330, relief: 30, seed: 7, side: '#555a4d', surface: COOKSONIA, defines, uniforms,
   });
-  return placeOnGround(slab, { yaw: 0.1, tilt: 0.14 });
+  return placeOnGround(slab, FLAT(0.1));
 }
 
 // ---------------------------------------------------------------- 辽宁古果
@@ -254,7 +260,7 @@ export function buildArchaefructus(exhibit, { renderer }) {
   const slab = buildSlab(renderer, {
     width: 440, depth: 330, relief: 26, seed: 11, side: '#a89a7c', surface: ARCHAEFRUCTUS, defines, uniforms,
   });
-  return placeOnGround(slab, { yaw: -0.05, tilt: 0.14 });
+  return placeOnGround(slab, FLAT(-0.05));
 }
 
 // ---------------------------------------------------------------- 提塔利克鱼
@@ -378,7 +384,7 @@ export function buildTiktaalik(exhibit, { renderer }) {
       uPelv: { value: pelv.base }, uPelvAng: { value: pelv.ang },
     },
   });
-  return placeOnGround(slab, { yaw: 0.04, tilt: 0.16 });
+  return placeOnGround(slab, FLAT(0.04));
 }
 
 // ---------------------------------------------------------------- 蜥脚类足迹
@@ -485,5 +491,5 @@ export function buildTrackway(exhibit, { renderer }) {
     surface: TRACKWAY, defines: `#define PES ${pes.length}\n#define THERO ${thero.length}`,
     uniforms: { uPes: { value: pes }, uManus: { value: manus }, uThero: { value: thero } },
   });
-  return placeOnGround(slab, { yaw: 0.02, tilt: 0.1, sink: 0.45 });   // 大半埋进地里，像地表露出的一层岩面
+  return placeOnGround(slab, { yaw: 0.02, sink: 0.45 });   // 大半埋进地里，像地表露出的一层岩面
 }

@@ -21,9 +21,9 @@ const BY4 = { license: 'CC BY 4.0', licenseUrl: 'https://creativecommons.org/lic
 const SI = 'Smithsonian Institution';
 
 export const SCANS = {
-  // 页岩上的三叶虫印痕：身体长轴横放、头朝行走方向，岩块大部分埋进地里
+  // 页岩上的三叶虫印痕：身体长轴横放、头朝行走方向，岩块一半埋进地里，化石所在的层面露在水面之上
   trilobite: {
-    file: 'trilobite.glb', size: 460, yaw: -1.67, tilt: 0.42, sink: 0.6, brighten: 1.9, relief: 2.5,
+    file: 'trilobite.glb', size: 460, yaw: -1.67, tilt: 0.42, sink: 0.45, brighten: 1.9, relief: 2.5,
     credit: { ...CC0, by: SI, title: 'Poliella prima (Walcott), USNM PAL116112', url: 'https://3d.si.edu/object/3d/poliella-prima:fcec58e8-ac1f-425d-9d83-8b16ca72b60c' },
   },
   // 邓氏鱼头骨：扫描的后脑是空的，让鼻吻朝向镜头右前方
@@ -37,7 +37,7 @@ export const SCANS = {
     credit: { ...BY4, by: 'Carter County Museum', title: 'CCM Ichthyosaur', url: 'https://sketchfab.com/3d-models/ccm-ichthyosaur-85fe3715565545669f184761d9dbdbf8' },
   },
   archaeopteryx: {
-    file: 'archaeopteryx.glb', size: 330, orient: [-Math.PI / 2, 0, 0], tilt: 0.14, yaw: 0.08,
+    file: 'archaeopteryx.glb', size: 330, orient: [-Math.PI / 2, 0, 0], yaw: 0.08, sink: 0.3,
     credit: { ...CC0, by: SI, title: 'Archaeopteryx siemensii Dames, USNM PAL509743', url: 'https://3d.si.edu/object/3d/archaeopteryx:391660da-7c49-499c-91f5-88a298686c09' },
   },
   triceratops: {
