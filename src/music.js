@@ -1,7 +1,7 @@
 // 背景音乐：用 Web Audio 实时生成，没有音频文件。
 // 想要的感觉是"夜晚的原野上望着星空"——安静、缓慢、开阔：
 //   · 铺底：D 利底亚调式的几个和弦，每个十几秒，慢慢淡入淡出，前后重叠；音色是柔和的三角波和正弦波，经过低通滤波
-//   · 低音：一个很轻的 D 持续音
+//   · 低音：一个很轻的 D 音，不是一直都在——每隔半分钟左右像潮水一样涨起来又退下去
 //   · 星星：偶尔响起一个高音的"铃声"，衰减很长，左右随机，大部分声音送进混响
 //   · 雨：走进卡尼期的雨区时混进沙沙的雨声
 // 浏览器只允许在用户操作（点击、按键、滚轮）之后开始播放声音，所以第一次操作时才启动。
@@ -27,10 +27,10 @@ function impulse(ctx, seconds, decay) {
 }
 
 export function createMusic() {
-  let ctx = null, master, dry, wet, rainGain;
+  let ctx = null, master, dry, wet, rainGain, droneGain;
   let muted = false;
   try { muted = localStorage.getItem('earth-music') === 'off'; } catch { /* 没有存储也没关系 */ }
-  let nextChord = 0, chordIndex = 0, nextStar = 0, timer = null;
+  let nextChord = 0, chordIndex = 0, nextStar = 0, nextSwell = 0, timer = null;
   let rain = 0;
 
   function build() {
@@ -59,12 +59,12 @@ export function createMusic() {
     starBus.connect(starDry).connect(master);
     build.starBus = starBus;
 
-    // 低音持续音
+    // 低音：振荡器一直在跑，音量平时为 0，由 schedule() 安排偶尔涨落
     const drone = ctx.createOscillator();
     drone.type = 'sine';
     drone.frequency.value = hz(26);
-    const droneGain = ctx.createGain();
-    droneGain.gain.value = 0.05;
+    droneGain = ctx.createGain();
+    droneGain.gain.value = 0;
     drone.connect(droneGain).connect(dry);
     drone.start();
 
@@ -87,6 +87,7 @@ export function createMusic() {
     src.start();
 
     nextChord = nextStar = ctx.currentTime + 0.5;
+    nextSwell = ctx.currentTime + 20;
     timer = setInterval(schedule, 250);
   }
 
@@ -112,7 +113,7 @@ export function createMusic() {
         o.frequency.value = hz(m);
         o.detune.value = detune;
         const g = ctx.createGain();
-        g.gain.value = (i === 0 ? 0.05 : 0.028) * (type === 'sine' ? 1.2 : 1);   // 最低音稍重
+        g.gain.value = (i === 0 ? 0.02 : 0.028) * (type === 'sine' ? 1.2 : 1);   // 最低音放轻，不要一直嗡嗡地垫着
         o.connect(g).connect(out);
         o.start(t);
         o.stop(end);
@@ -153,6 +154,15 @@ export function createMusic() {
       playStar(nextStar);
       if (Math.random() < 0.3) playStar(nextStar + 0.35 + Math.random() * 0.4);   // 偶尔两颗接连响起
       nextStar += 2.5 + Math.random() * 6;
+    }
+    // 低音的涨落：6 秒涨起、停一会、10 秒退去，间隔 25~50 秒
+    if (nextSwell < now + 1) {
+      const t = nextSwell, g = droneGain.gain;
+      g.setValueAtTime(0, t);
+      g.linearRampToValueAtTime(0.03, t + 6);
+      g.setValueAtTime(0.03, t + 10);
+      g.linearRampToValueAtTime(0, t + 20);
+      nextSwell = t + 25 + Math.random() * 25;
     }
     rainGain.gain.setTargetAtTime(rain * 0.09, now, 0.8);
   }

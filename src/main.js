@@ -21,7 +21,7 @@ const CAMERA = { y: 380, z: 0, pitch: -0.36, fov: 40 };
 const WALKER = { x: -130, z: -540, scale: 5.5 };   // 小人在画面中的位置（本地坐标，偏左，留出前方视野）
 const SPEED = { walk: 40, fast: 420, back: -300 };
 // 太阳在前方偏右、仰角约 23°（画面上沿之外）：水面的反光才会朝向镜头，影子朝观众这边拉长
-const SUN_DIR = new THREE.Vector3(0.45, 0.4, -0.8).normalize();
+const SUN_DIR = new THREE.Vector3(0.45, 0.4, -0.8).normalize();   // 默认（白天）的方向；光照菜单里可以改
 
 // ---- 渲染器 ----
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -61,6 +61,7 @@ scene.add(sun, sun.target);
 // ---- 天空 ----
 const sky = createSky();
 sky.uniforms.uSunDir.value.copy(SUN_DIR);
+const sunDir = SUN_DIR.clone();   // 当前实际的光照方向（太阳，夜里是月亮）
 sky.uniforms.uDip.value = Math.sqrt((2 * CAMERA.y) / CURVE_R);
 scene.add(sky.mesh);
 
@@ -166,6 +167,8 @@ window.addEventListener('keydown', startMusic, { once: true });
 const skyKeys = SKY_KEYS.map((k) => ({ ...k, h: new THREE.Color(k.horizon), z: new THREE.Color(k.zenith) }));
 const ashH = new THREE.Color(ASH_SKY.horizon), ashZ = new THREE.Color(ASH_SKY.zenith);
 const rainH = new THREE.Color('#9fa8ad'), rainZ = new THREE.Color('#5f6b75');   // 阴雨天：灰蓝色，头顶更暗
+const sunsetH = new THREE.Color('#c8927a'), sunsetZ = new THREE.Color('#14244a');   // 夕阳：天边暗粉紫（金橙色的辉光另外加），头顶深蓝
+const nightH = new THREE.Color('#141d2c'), nightZ = new THREE.Color('#03060d');
 let rainSky = 0;
 function updateAtmosphere(age, walkerX) {
   let i = 1;
@@ -184,12 +187,89 @@ function updateAtmosphere(age, walkerX) {
 
   const horizon = sky.uniforms.uHorizon.value.copy(a.h).lerp(b.h, t).lerp(ashH, ash).lerp(rainH, rainSky * 0.85);
   const zenith = sky.uniforms.uZenith.value.copy(a.z).lerp(b.z, t).lerp(ashZ, ash).lerp(rainZ, rainSky * 0.85);
+  horizon.lerp(sunsetH, tod.sunset * 0.72).lerp(nightH, tod.night * 0.92);
+  zenith.lerp(sunsetZ, tod.sunset * 0.9).lerp(nightZ, tod.night * 0.96);
   scene.fog.color.copy(horizon);
   scene.fog.density = 0.00011 + 0.00019 * haze;
   terrain.uniforms.uSkyHorizon.value.copy(horizon);
   hemi.color.copy(zenith).lerp(horizon, 0.6);
-  sun.intensity = SUN_POWER * (1 - 0.45 * ash) * (1 - 0.88 * rainSky);
+  sun.intensity = tod.power * (1 - 0.45 * ash) * (1 - 0.88 * rainSky);
 }
+
+// ---- 光照：白天 / 夕阳 / 夜晚，太阳（夜里是月亮）的方位和高度可调 ----
+// 三种模式的参数按权重混合，切换时一两秒内平滑过渡。方位 0° 是正前方（远处的崖壁方向），正数偏右。
+const DEG = Math.PI / 180;
+const LIGHT_MODES = {
+  day:    { elevation: 24, color: new THREE.Color('#ffe6c4'), power: SUN_POWER, hemi: 0.5,  ground: new THREE.Color('#b08560'), env: 0.25, exposure: 1.0 },
+  sunset: { elevation: 4,  color: new THREE.Color('#ff9a52'), power: 2.6,       hemi: 0.3,  ground: new THREE.Color('#7a4a32'), env: 0.3,  exposure: 1.05 },
+  night:  { elevation: 32, color: new THREE.Color('#a8bcff'), power: 0.34,      hemi: 0.12, ground: new THREE.Color('#1c1e28'), env: 0.2,  exposure: 1.3 },
+};
+const light = { mode: 'day', azimuth: 29, elevation: 24 };
+try { Object.assign(light, JSON.parse(localStorage.getItem('earth-light') || '{}')); } catch { /* 用默认值 */ }
+const tod = { sunset: 0, night: 0, az: light.azimuth, el: light.elevation, power: SUN_POWER };
+if (light.mode !== 'day') tod[light.mode] = 1;
+const tmpColor = new THREE.Color();
+const dirFrom = (az, el, out) => out.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
+
+function updateLighting(dt) {
+  const k = Math.min(1, dt * 1.5);
+  tod.sunset += ((light.mode === 'sunset' ? 1 : 0) - tod.sunset) * k;
+  tod.night += ((light.mode === 'night' ? 1 : 0) - tod.night) * k;
+  tod.az += (light.azimuth - tod.az) * k;
+  tod.el += (light.elevation - tod.el) * k;
+  const wd = Math.max(0, 1 - tod.sunset - tod.night), { day, sunset, night } = LIGHT_MODES;
+  const mix = (f) => f(day) * wd + f(sunset) * tod.sunset + f(night) * tod.night;
+
+  dirFrom(tod.az * DEG, tod.el * DEG, sunDir);
+  sun.position.copy(sun.target.position).addScaledVector(sunDir, 2500);
+  sun.color.setRGB(mix((m) => m.color.r), mix((m) => m.color.g), mix((m) => m.color.b));
+  tod.power = mix((m) => m.power);
+  hemi.intensity = mix((m) => m.hemi);
+  hemi.groundColor.setRGB(mix((m) => m.ground.r), mix((m) => m.ground.g), mix((m) => m.ground.b));
+  scene.environmentIntensity = mix((m) => m.env);
+  renderer.toneMappingExposure = mix((m) => m.exposure);
+
+  // 天空里的日轮：夕阳时画在地平线上方一点（真实的太阳高度在画面上沿之外），夜里换成月亮
+  const dip = sky.uniforms.uDip.value;
+  const discEl = THREE.MathUtils.lerp(tod.el * DEG, 0.035 - dip, tod.sunset);
+  dirFrom(tod.az * DEG, discEl, sky.uniforms.uSunDir.value);
+  dirFrom(tod.az * DEG, 0.13 - dip, sky.uniforms.uMoonDir.value);
+  sky.uniforms.uSunVis.value = 1 - tod.night;
+  sky.uniforms.uGlow.value = tod.sunset;
+  sky.uniforms.uStars.value = tod.night;
+  sky.uniforms.uMoon.value = tod.night;
+}
+
+// 菜单
+function setupLightPanel() {
+  const panel = document.getElementById('light-panel');
+  const az = document.getElementById('lp-az'), el = document.getElementById('lp-el');
+  const azV = document.getElementById('lp-az-v'), elV = document.getElementById('lp-el-v');
+  const buttons = [...panel.querySelectorAll('[data-mode]')];
+  const save = () => { try { localStorage.setItem('earth-light', JSON.stringify(light)); } catch { /* 忽略 */ } };
+  const show = () => {
+    az.value = light.azimuth; el.value = light.elevation;
+    azV.textContent = `${light.azimuth > 0 ? '右' : light.azimuth < 0 ? '左' : ''} ${Math.abs(light.azimuth)}°`;
+    elV.textContent = `${light.elevation}°`;
+    buttons.forEach((b) => b.classList.toggle('on', b.dataset.mode === light.mode));
+    document.getElementById('lp-body-label').textContent = light.mode === 'night' ? '月亮' : '太阳';
+  };
+  buttons.forEach((b) => b.addEventListener('click', () => {
+    light.mode = b.dataset.mode;
+    light.elevation = LIGHT_MODES[light.mode].elevation;
+    show(); save();
+  }));
+  az.addEventListener('input', () => { light.azimuth = +az.value; show(); save(); });
+  el.addEventListener('input', () => { light.elevation = +el.value; show(); save(); });
+  document.getElementById('lp-reset').addEventListener('click', () => {
+    Object.assign(light, { azimuth: 29, elevation: LIGHT_MODES[light.mode].elevation }); show(); save();
+  });
+  // 面板里的按键和滚轮不要传给行走控制
+  for (const ev of ['keydown', 'keyup', 'wheel', 'pointerdown']) panel.addEventListener(ev, (e) => e.stopPropagation());
+  document.getElementById('light-open').addEventListener('click', (e) => { e.stopPropagation(); panel.hidden = !panel.hidden; });
+  show();
+}
+setupLightPanel();
 
 // ---- 自适应分辨率 ----
 const perf = { sum: 0, n: 0 };
@@ -236,6 +316,7 @@ function step() {
   walker.object.position.set(WALKER.x, rawHeight(walkerX, WALKER.z) - curveDrop(WALKER.x, WALKER.z), WALKER.z);
   walker.update(dt, motion.velocity / WALKER.scale);
   exhibits.update(motion.scroll, camera, window.innerWidth, window.innerHeight);
+  updateLighting(dt);
   updateAtmosphere(age, walkerX);
   updateEnvironment(time);
   hud.update(walkerX, age);
@@ -266,4 +347,4 @@ const teleport = (walkerX) => {
   Object.assign(motion, { scroll: walkerX - WALKER.x, velocity: 0, jumpTo: null, paused: true });
   step();
 };
-window.__earth = { motion, jump, teleport, step, music, exhibits, camera, renderer, composer, scene, WALK_LENGTH, WALKER };
+window.__earth = { motion, jump, teleport, step, music, walker, exhibits, camera, renderer, composer, scene, WALK_LENGTH, WALKER };
