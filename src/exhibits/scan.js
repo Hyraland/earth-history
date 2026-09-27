@@ -43,13 +43,13 @@ export const SCANS = {
     credit: { ...CC0, by: SI, title: 'Archaeopteryx siemensii Dames, USNM PAL509743', url: 'https://3d.si.edu/object/3d/archaeopteryx:391660da-7c49-499c-91f5-88a298686c09' },
   },
   triceratops: {
-    // 绕身体长轴再转 -0.3，骨架才真正直立（脊柱正在四只脚上方），四脚着地；颜色漂成博物馆复制骨架常见的米白色
-    file: 'triceratops.glb', size: 360, orient: [-0.28, 0, Math.PI / 2 - 0.3], yaw: Math.PI / 2 - 0.35, bleach: 0.8, brighten: 1.2,
+    // 绕身体长轴再转 -0.56：在直立（-0.3）的基础上，背部再朝远处转约 15°
+    file: 'triceratops.glb', size: 360, orient: [-0.28, 0, Math.PI / 2 - 0.56], yaw: Math.PI / 2 - 0.35,
     credit: { ...CC0, by: SI, title: 'Triceratops horridus Marsh, 1889, USNM PAL500000', url: 'https://3d.si.edu/object/3d/triceratops-horridus-marsh-1889:d8c623be-4ebc-11ea-b77f-2e728ce88125' },
   },
   // 二齿兽头骨：真实大小只有十几厘米，放大成一座"头骨山"，吻端朝镜头右前方
   diictodon: {
-    file: 'diictodon.glb', size: 300, orient: [0, 0, 0.44], yaw: 0.2, brighten: 1.5,
+    file: 'diictodon.glb', size: 300, orient: [0, 0, 0.18], yaw: 0.02, brighten: 1.5,   // 吻端略朝向镜头
     credit: { ...CC0, by: SI, title: 'Diictodon feliceps Owen, 1876: skull, USNM V22939', url: 'https://3d.si.edu/object/3d/diictodon:3b3add34-8d97-4a66-96fa-4e2d343db77c' },
   },
   cetotherium: {
@@ -62,7 +62,7 @@ export const SCANS = {
     credit: { ...BY4, by: 'JackalopeODDsENDs', title: '"Lucy" Australopithecus afarensis; AL 288-1（据标本照片建模）', url: 'https://sketchfab.com/3d-models/lucy-australopithecus-afarensis-al-288-1-9f6c06b0a4e54890a87486e414b8cb0d' },
   },
   mammoth: {
-    file: 'mammoth.glb', size: 340, yaw: Math.PI / 2 - 0.3, color: '#9c7c5a',
+    file: 'mammoth.glb', size: 510, yaw: Math.PI / 2 - 0.3, color: '#9c7c5a',
     credit: { ...CC0, by: SI, title: 'Mammuthus primigenius (Blumbach), USNM V23792', url: 'https://3d.si.edu/object/3d/mammoth:341c96cd-f967-4540-8ed1-d3fc56d31f12' },
   },
 };

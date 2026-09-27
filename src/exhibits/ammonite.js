@@ -10,6 +10,7 @@ import { bakeTexture } from '../bake.js';
 
 const TAU = Math.PI * 2;
 const SHAPE = { radius: 112, turns: 4.3, expansion: 2.0, ribsPerTurn: 26 };
+const SCALE = 1.5;   // 整体放大
 
 function shellGeometry({ radius, turns, expansion, ribsPerTurn, segPerTurn = 260, segRing = 72 }) {
   const b = Math.log(expansion) / TAU;               // 每转一圈半径放大 expansion 倍
@@ -291,6 +292,7 @@ export function buildAmmonite(exhibit, { renderer }) {
   const fossil = new THREE.Group();
   fossil.add(shell, capMesh);
   fossil.rotation.y = 0.04;
+  fossil.scale.setScalar(SCALE);
   fossil.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(fossil, true);
   fossil.position.y = -box.min.y - 2;
