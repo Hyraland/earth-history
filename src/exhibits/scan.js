@@ -44,7 +44,7 @@ export const SCANS = {
   },
   triceratops: {
     // 绕身体长轴再转 -0.56：在直立（-0.3）的基础上，背部再朝远处转约 15°
-    file: 'triceratops.glb', size: 540, orient: [-0.28, 0, Math.PI / 2 - 0.56], yaw: Math.PI / 2 - 0.35, sink: 0.06,   // 略微下沉，身体倾斜后各只脚都踩进地面
+    file: 'triceratops.glb', size: 810, orient: [-0.28, 0, Math.PI / 2 - 0.56], yaw: Math.PI / 2 - 0.35, sink: 0.06,   // 略微下沉，身体倾斜后各只脚都踩进地面
     credit: { ...CC0, by: SI, title: 'Triceratops horridus Marsh, 1889, USNM PAL500000', url: 'https://3d.si.edu/object/3d/triceratops-horridus-marsh-1889:d8c623be-4ebc-11ea-b77f-2e728ce88125' },
   },
   // 二齿兽头骨：真实大小只有十几厘米，放大成一座"头骨山"，吻端朝镜头右前方
@@ -53,7 +53,7 @@ export const SCANS = {
     credit: { ...CC0, by: SI, title: 'Diictodon feliceps Owen, 1876: skull, USNM V22939', url: 'https://3d.si.edu/object/3d/diictodon:3b3add34-8d97-4a66-96fa-4e2d343db77c' },
   },
   cetotherium: {
-    file: 'cetotherium.glb', size: 630, yaw: Math.PI / 2,
+    file: 'cetotherium.glb', size: 945, yaw: Math.PI / 2,
     credit: { ...BY4, by: 'SchmalhausenEvolMorph', title: 'Cetotherium riabinini assembled skeleton', url: 'https://sketchfab.com/3d-models/cetotherium-riabinini-assembled-skeleton-8532da04db044d9c8417fcec43053e3a' },
   },
   // 露西：骨骼按博物馆陈列的方式平摊，头朝行走方向，半埋在地里；模型没有颜色贴图，配化石骨骼的颜色
